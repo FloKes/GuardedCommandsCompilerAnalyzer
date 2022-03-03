@@ -27,6 +27,8 @@ let rec eval e =
 let rec getAST e =
   match e with
     | Num(x) -> string x
+    | Var(x) -> x
+    | Assign(x,y) -> ":=(" + getAST(x) + "," + getAST (y) + ")"
     | TimesExpr(x,y) -> "*(" + getAST(x) + "," + getAST (y) + ")"
     | DivExpr(x,y) -> "/(" + getAST(x) + "," + getAST (y) + ")"
     | PlusExpr(x,y) -> "+(" + getAST(x) + "," + getAST (y) + ")"
@@ -45,6 +47,7 @@ let parse input =
     // return the result of parsing (i.e. value of type "expr")
     res
 
+
 // We implement here the function that interacts with the user
 let rec compile n =
     if n = 0 then
@@ -61,3 +64,29 @@ let rec compile n =
 
 // Start interacting with the user
 compile 3
+
+// We
+let lastToken input =
+    // translate string into a buffer of characters
+    let lexbuf = LexBuffer<char>.FromString input
+    // translate the buffer into a stream of tokens and parse them
+    let res = Parser.token_to_string(Lexer.tokenize lexbuf)
+
+    // return the result of parsing (i.e. value of type "expr")
+    res
+
+// We implement here the function that interacts with the user
+let rec printToken n =
+    if n = 0 then
+        printfn "Bye bye"
+    else
+        printf "Enter an expression: "
+        try
+        // We parse the input string
+        let e = lastToken (Console.ReadLine())
+        // and print the result of evaluating it
+        printfn "Last token: %s" (e)
+        printToken n
+        with err -> printToken (n-1)
+
+//printToken 3

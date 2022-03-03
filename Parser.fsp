@@ -5,7 +5,8 @@ open TypesAST
 
 // Declare the tokens (terminal symbols)
 %token <int> NUM
-%token TIMES DIV PLUS MINUS POW SQRT LPAR RPAR EOF
+%token <string> VAR
+%token ASSIGN TIMES DIV PLUS MINUS POW SQRT LPAR RPAR EOF
 // NOTE: the actual formats of these tokens are defined in the lexer file
 //       as regular expressions
 
@@ -21,6 +22,7 @@ open TypesAST
 
 // We specify the return type of each of then non-terminal symbols
 %type <expr> start
+%type <expr> expression
 %type <expr> expression0
 %type <expr> expression1
 %type <expr> expression2
@@ -32,7 +34,7 @@ open TypesAST
 // The first production in "formal" notation is
 // start -> expression0
 // here written:
-start: expression0 EOF             { $1 }
+start: expression EOF             { $1 }
 
 // Note that we need to insert an End-Of-File (EOF)
 // The code annotation { $1 } specifies that parsing with this production
@@ -44,6 +46,11 @@ start: expression0 EOF             { $1 }
 
 // Now we have one level for each of the operator precedence levels (see GCL rules)
 // Note how we deal with associativity by allowing recursion on one side only
+
+expression:
+  | expression3 ASSIGN expression0  { Assign($1, $3)}
+  | expression0                     { $1 }
+
 expression0:
   | expression0 PLUS expression1    { PlusExpr($1,$3) }
   | expression0 MINUS expression1   { MinusExpr($1,$3) }
@@ -62,6 +69,7 @@ expression3:
   | PLUS expression3                { UPlusExpr($2) }
   | MINUS expression3               { UMinusExpr($2) }
   | NUM                             { Num($1) }
+  | VAR                             { Var($1)}
   | LPAR expression0 RPAR           { $2 }
   
 // Again, the code annotation specifies the result of parsing
