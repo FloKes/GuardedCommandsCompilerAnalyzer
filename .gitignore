@@ -1,3 +1,6 @@
 Calculator*
+Parser.fs
+Parser.fsi
+Lexer.fs
 .vscode
 .ionide
