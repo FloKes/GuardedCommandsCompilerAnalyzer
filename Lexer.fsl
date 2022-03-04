@@ -14,7 +14,7 @@ let digit       = ['0'-'9']
 let num         = digit+ ('E' ('+'|'-')? digit+ )?
 let char0       = ['a' - 'z' 'A' - 'Z']
 let char1       = ['a' - 'z' 'A' - 'Z' '0'-'9']
-let var         = char0+ (char1+)?
+let identifier         = char0 (char1+)?
 let whitespace  = [' ' '\t']
 let newline     = "\n\r" | '\n' | '\r'
 
@@ -28,7 +28,6 @@ rule tokenize = parse
 | newline       { lexbuf.EndPos <- lexbuf.EndPos.NextLine; tokenize lexbuf; }
 // deal with tokens that need to be built
 | num           { NUM(Int32.Parse(LexBuffer<_>.LexemeString lexbuf)) }
-| var           { VAR(LexBuffer<_>.LexemeString lexbuf) }
 | ":="          { ASSIGN }
 | '*'           { TIMES }
 | '/'           { DIV }
@@ -37,4 +36,7 @@ rule tokenize = parse
 | '^'           { POW }
 | '('           { LPAR }
 | ')'           { RPAR }
+| '['           { LSPAR }
+| ']'           { RSPAR }
+| identifier    { IDENTIFIER(LexBuffer<_>.LexemeString lexbuf) }
 | eof           { EOF }

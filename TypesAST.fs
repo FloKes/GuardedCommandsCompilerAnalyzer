@@ -4,7 +4,8 @@ module TypesAST
 
 type expr =
   | Num of int
-  | Var of string
+  | Identifier of string
+  | IdentifierArray of (string * expr)
   | Assign of (expr * expr)
   | TimesExpr of (expr * expr)
   | DivExpr of (expr * expr)

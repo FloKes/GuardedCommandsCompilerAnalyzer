@@ -27,7 +27,8 @@ let rec eval e =
 let rec getAST e =
   match e with
     | Num(x) -> string x
-    | Var(x) -> x
+    | Identifier(x) -> x
+    | IdentifierArray(x, y) -> x + "[" + getAST(y) + "]"
     | Assign(x,y) -> ":=(" + getAST(x) + "," + getAST (y) + ")"
     | TimesExpr(x,y) -> "*(" + getAST(x) + "," + getAST (y) + ")"
     | DivExpr(x,y) -> "/(" + getAST(x) + "," + getAST (y) + ")"
