@@ -13,32 +13,42 @@ open Lexer
 
 // We define the evaluation function recursively, by induction on the structure
 // of arithmetic expressions (AST of type expr)
-let rec eval e =
-  match e with
-    | Num(x) -> x
-    | TimesExpr(x,y) -> eval(x) * eval (y)
-    | DivExpr(x,y) -> eval(x) / eval (y)
-    | PlusExpr(x,y) -> eval(x) + eval (y)
-    | MinusExpr(x,y) -> eval(x) - eval (y)
-    | PowExpr(x,y) -> pown (eval(x)) (eval(y))
-    | UPlusExpr(x) -> eval(x)
-    | UMinusExpr(x) -> - eval(x)
 
-let rec getAST e =
+let rec getASTAri e =
   match e with
     | Num(x) -> string x
     | Identifier(x) -> x
-    | IdentifierArray(x, y) -> x + "[" + getAST(y) + "]"
-    | Assign(x,y) -> ":=(" + getAST(x) + "," + getAST (y) + ")"
-    | TimesExpr(x,y) -> "*(" + getAST(x) + "," + getAST (y) + ")"
-    | DivExpr(x,y) -> "/(" + getAST(x) + "," + getAST (y) + ")"
-    | PlusExpr(x,y) -> "+(" + getAST(x) + "," + getAST (y) + ")"
-    | MinusExpr(x,y) -> "-(" + getAST(x) + "," + getAST (y) + ")"
-    | PowExpr(x,y) -> "pow(" + getAST(x) + "," + getAST (y) + ")"
-    | UPlusExpr(x) -> "+" + getAST(x)
-    | UMinusExpr(x) -> "-" + getAST(x)
+    | IdentifierArray(x, y) -> x + "[" + getASTAri(y) + "]"
+    | TimesExpr(x,y) -> "*(" + getASTAri(x) + ", " + getASTAri (y) + ")"
+    | DivExpr(x,y) -> "/(" + getASTAri(x) + ", " + getASTAri (y) + ")"
+    | PlusExpr(x,y) -> "+(" + getASTAri(x) + ", " + getASTAri (y) + ")"
+    | MinusExpr(x,y) -> "-(" + getASTAri(x) + ", " + getASTAri (y) + ")"
+    | PowExpr(x,y) -> "pow(" + getASTAri(x) + ", " + getASTAri (y) + ")"
+    | UPlusExpr(x) -> "+" + getASTAri(x)
+    | UMinusExpr(x) -> "-" + getASTAri(x)
 
-// We
+let rec getASTBool e =
+    match e with
+      | Bool(x) -> string x
+      | NotExpr(x) -> "!(" + getASTBool(x) + ")"
+      | LOrExpr(x,y) -> "||(" + getASTBool(x) + ", " + getASTBool(y) + ")"
+      | LAndExpr(x,y) -> "&&(" + getASTBool(x) + ", " + getASTBool(y) + ")"
+      | OrExpr(x,y) -> "|(" + getASTBool(x) + ", " + getASTBool(y) + ")"
+      | AndExpr(x,y) -> "&(" + getASTBool(x) + ", " + getASTBool(y) + ")"
+      | EqExpr(x,y) -> "=(" + getASTAri(x) + ", " + getASTAri(y) + ")"
+      | NeqExpr(x,y) -> "!=(" + getASTAri(x) + ", " + getASTAri(y) + ")"
+      | LtExpr(x,y) -> "<(" + getASTAri(x) + ", " + getASTAri(y) + ")"
+      | LeqExpr(x,y) -> "<=(" + getASTAri(x) + ", " + getASTAri(y) + ")"
+      | GtExpr(x,y) -> ">(" + getASTAri(x) + ", " + getASTAri(y) + ")"
+      | GeqExpr(x,y) -> ">=(" + getASTAri(x) + ", " + getASTAri(y) + ")"
+
+
+and getASTCommand e =
+  match e with
+    | Assign(x,y) -> ":=(" + getASTAri(x) + "," + getASTAri (y) + ")"
+    | IfFi(x,y) -> "IF(" + getASTBool(x) + ") THEN " + getASTCommand(y) + " FI"
+
+
 let parse input =
     // translate string into a buffer of characters
     let lexbuf = LexBuffer<char>.FromString input
@@ -59,35 +69,9 @@ let rec compile n =
         // We parse the input string
         let e = parse (Console.ReadLine())
         // and print the result of evaluating it
-        printfn "AST: %s" (getAST(e))
+        printfn "AST: %s" (getASTCommand(e))
         compile n
         with err -> compile (n-1)
 
 // Start interacting with the user
 compile 3
-
-// We
-let lastToken input =
-    // translate string into a buffer of characters
-    let lexbuf = LexBuffer<char>.FromString input
-    // translate the buffer into a stream of tokens and parse them
-    let res = Parser.token_to_string(Lexer.tokenize lexbuf)
-
-    // return the result of parsing (i.e. value of type "expr")
-    res
-
-// We implement here the function that interacts with the user
-let rec printToken n =
-    if n = 0 then
-        printfn "Bye bye"
-    else
-        printf "Enter an expression: "
-        try
-        // We parse the input string
-        let e = lastToken (Console.ReadLine())
-        // and print the result of evaluating it
-        printfn "Last token: %s" (e)
-        printToken n
-        with err -> printToken (n-1)
-
-//printToken 3

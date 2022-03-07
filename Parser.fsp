@@ -6,8 +6,11 @@ open TypesAST
 // Declare the tokens (terminal symbols)
 %token <int> NUM
 %token <string> IDENTIFIER
+%token ASSIGN
+%token IF FI THEN
 %token LPAR RPAR LSPAR RSPAR
-%token ASSIGN TIMES DIV PLUS MINUS POW EOF
+%token TIMES DIV PLUS MINUS POW EOF
+%token TRUE FALSE LOR LAND OR AND NOT EQ NEQ GT LT GEQ LEQ 
 // NOTE: the actual formats of these tokens are defined in the lexer file
 //       as regular expressions
 
@@ -22,13 +25,27 @@ open TypesAST
 %start start
 
 // We specify the return type of each of then non-terminal symbols
-%type <expr> start
-%type <expr> expression
-%type <expr> expression0
-%type <expr> expression1
-%type <expr> expression2
-%type <expr> expression3
-%type <expr> identifier
+%type <command> start
+%type <command> command
+
+// Arithmetic expr
+%type <aexpr> Aexpression0
+%type <aexpr> Aexpression1
+%type <aexpr> Aexpression2
+%type <aexpr> Aexpression3
+%type <aexpr> identifier
+
+// Boolean expr
+%type <bexpr> Bexpression0
+%type <bexpr> Bexpression1
+%type <bexpr> Bexpression2
+%type <bexpr> Bexpression3
+%type <bexpr> Bexpression4
+%type <bexpr> Bexpression5
+%type <bexpr> Bexpression6
+%type <bexpr> Bexpression7
+
+
 
 // Grammar productions
 %%
@@ -36,7 +53,7 @@ open TypesAST
 // The first production in "formal" notation is
 // start -> expression0
 // here written:
-start: expression EOF             { $1 }
+start: command EOF             { $1 }
 
 // Note that we need to insert an End-Of-File (EOF)
 // The code annotation { $1 } specifies that parsing with this production
@@ -49,35 +66,78 @@ start: expression EOF             { $1 }
 // Now we have one level for each of the operator precedence levels (see GCL rules)
 // Note how we deal with associativity by allowing recursion on one side only
 
-expression:
-  | identifier ASSIGN expression0  { Assign($1, $3)}
-  | expression0                     { $1 }
 
-expression0:
-  | expression0 PLUS expression1    { PlusExpr($1,$3) }
-  | expression0 MINUS expression1   { MinusExpr($1,$3) }
-  | expression1                     { $1 }
+// Commands
+command:
+  | identifier ASSIGN Aexpression0  { Assign($1, $3)}
+  | IF Bexpression0 THEN command FI { IfFi($2, $4) }
 
-expression1:
-  | expression1 TIMES expression2   { TimesExpr($1,$3) }
-  | expression1 DIV expression2     { DivExpr($1,$3) }
-  | expression2                     { $1 }
 
-expression2:
-  | expression3 POW expression2     { PowExpr($1,$3) }
-  | expression3                     { $1 }
+//Arithmetic expressions
+Aexpression0:
+  | Aexpression0 PLUS Aexpression1    { PlusExpr($1,$3) }
+  | Aexpression0 MINUS Aexpression1   { MinusExpr($1,$3) }
+  | Aexpression1                     { $1 }
 
-expression3:
-  | PLUS expression3                { UPlusExpr($2) }
-  | MINUS expression3               { UMinusExpr($2) }
+Aexpression1:
+  | Aexpression1 TIMES Aexpression2   { TimesExpr($1,$3) }
+  | Aexpression1 DIV Aexpression2     { DivExpr($1,$3) }
+  | Aexpression2                     { $1 }
+
+Aexpression2:
+  | Aexpression3 POW Aexpression2     { PowExpr($1,$3) }
+  | Aexpression3                     { $1 }
+
+Aexpression3:
+  | PLUS Aexpression3                { UPlusExpr($2) }
+  | MINUS Aexpression3               { UMinusExpr($2) }
   | NUM                             { Num($1) }
   | identifier                      { $1}
-  | LPAR expression0 RPAR           { $2 }
+  | LPAR Aexpression0 RPAR           { $2 }
 
 identifier:
 | IDENTIFIER                        { Identifier($1)}
-| IDENTIFIER LSPAR expression0 RSPAR{ IdentifierArray($1, $3)}
+| IDENTIFIER LSPAR Aexpression0 RSPAR{ IdentifierArray($1, $3)}
   
+
+// Booleans
+
+Bexpression0:
+  | Bexpression0 LOR Bexpression1           {LOrExpr($1, $3)}
+  | Bexpression1                            { $1 }
+
+Bexpression1:
+  | Bexpression1 LAND Bexpression2          {LAndExpr($1, $3)}
+  | Bexpression2                            { $1 }          
+
+Bexpression2:
+  | Bexpression2 OR Bexpression3            {OrExpr($1, $3)}
+  | Bexpression3                            { $1 }
+
+Bexpression3:
+  | Bexpression4 AND Bexpression4            {AndExpr($1, $3)}
+  | Bexpression4                            { $1 }
+
+Bexpression4:
+  | Aexpression0 EQ Aexpression0            {EqExpr($1, $3)}
+  | Aexpression0 NEQ Aexpression0           {NeqExpr($1, $3)}
+  | Bexpression5                            { $1 }
+
+Bexpression5:
+  | Aexpression0 LT Aexpression0           {LtExpr($1, $3)}
+  | Aexpression0 LEQ Aexpression0           {LeqExpr($1, $3)}
+  | Aexpression0 GT Aexpression0           {GtExpr($1, $3)}
+  | Aexpression0 GEQ Aexpression0           {GeqExpr($1, $3)}
+  | Bexpression6                            { $1 }
+
+Bexpression6:
+  | NOT Bexpression7                  {NotExpr($2)}
+  | Bexpression7                            { $1 }
+
+Bexpression7:
+  | TRUE                            {Bool(true)}
+  | FALSE                           {Bool(false)}
+  | LPAR Bexpression0 RPAR              {$2}
 // Again, the code annotation specifies the result of parsing
 // For example { TimesExpr($1,$3) } specifies that parsing with the production
 // returns the value TimesExpr($1,$3), where $i is the result of parsing

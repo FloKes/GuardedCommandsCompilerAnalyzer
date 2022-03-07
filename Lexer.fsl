@@ -14,7 +14,7 @@ let digit       = ['0'-'9']
 let num         = digit+ ('E' ('+'|'-')? digit+ )?
 let char0       = ['a' - 'z' 'A' - 'Z']
 let char1       = ['a' - 'z' 'A' - 'Z' '0'-'9']
-let identifier         = char0 (char1+)?
+let identifier  = char0 (char1+)?
 let whitespace  = [' ' '\t']
 let newline     = "\n\r" | '\n' | '\r'
 
@@ -38,5 +38,21 @@ rule tokenize = parse
 | ')'           { RPAR }
 | '['           { LSPAR }
 | ']'           { RSPAR }
+| "true"        { TRUE }
+| "false"       { FALSE }
+| '&'           { AND }
+| '|'           { OR }
+| "&&"          { LAND }
+| "||"          { LOR }
+| '!'           { NOT }
+| '='           { EQ }
+| "!="          { NEQ }
+| '>'           { GT }
+| ">="          { GEQ }
+| '<'           { LT }
+| "<="          { LEQ }
+| "if"          { IF }
+| "fi"          { FI }
+| "->"          { THEN }
 | identifier    { IDENTIFIER(LexBuffer<_>.LexemeString lexbuf) }
 | eof           { EOF }
