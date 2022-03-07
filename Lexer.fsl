@@ -29,6 +29,7 @@ rule tokenize = parse
 // deal with tokens that need to be built
 | num           { NUM(Int32.Parse(LexBuffer<_>.LexemeString lexbuf)) }
 | ":="          { ASSIGN }
+| "->"          { THEN }
 | '*'           { TIMES }
 | '/'           { DIV }
 | '+'           { PLUS }
@@ -36,6 +37,7 @@ rule tokenize = parse
 | '^'           { POW }
 | '('           { LPAR }
 | ')'           { RPAR }
+| "[]"          { ELSE }
 | '['           { LSPAR }
 | ']'           { RSPAR }
 | "true"        { TRUE }
@@ -53,6 +55,5 @@ rule tokenize = parse
 | "<="          { LEQ }
 | "if"          { IF }
 | "fi"          { FI }
-| "->"          { THEN }
 | identifier    { IDENTIFIER(LexBuffer<_>.LexemeString lexbuf) }
 | eof           { EOF }

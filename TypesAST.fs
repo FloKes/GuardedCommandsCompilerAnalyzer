@@ -31,4 +31,8 @@ type bexpr =
 
 type command = 
   | Assign of (aexpr * aexpr)
-  | IfFi of (bexpr * command)
+  | IfFi of (guardedcommand)
+  
+and guardedcommand = 
+  | GuardedCommand of (bexpr * command)
+  | GuardedCommandSeq of (guardedcommand * guardedcommand)

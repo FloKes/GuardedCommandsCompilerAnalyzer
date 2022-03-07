@@ -43,11 +43,16 @@ let rec getASTBool e =
       | GeqExpr(x,y) -> ">=(" + getASTAri(x) + ", " + getASTAri(y) + ")"
 
 
-and getASTCommand e =
+let rec getASTCommand e =
   match e with
     | Assign(x,y) -> ":=(" + getASTAri(x) + "," + getASTAri (y) + ")"
-    | IfFi(x,y) -> "IF(" + getASTBool(x) + ") THEN " + getASTCommand(y) + " FI"
+    | IfFi(x) -> "IF(" + getASTGuardedCommand(x) + ") FI"
 
+and getASTGuardedCommand e =
+    match e with
+        | GuardedCommand(x, y) -> "(" + getASTBool(x) + ") THEN(" + getASTCommand(y) + ")"
+        | GuardedCommandSeq(x,y) -> getASTGuardedCommand(x) + " [] " + getASTGuardedCommand(y)
+    
 
 let parse input =
     // translate string into a buffer of characters

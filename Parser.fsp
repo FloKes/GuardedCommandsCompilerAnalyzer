@@ -7,7 +7,7 @@ open TypesAST
 %token <int> NUM
 %token <string> IDENTIFIER
 %token ASSIGN
-%token IF FI THEN
+%token IF FI THEN ELSE
 %token LPAR RPAR LSPAR RSPAR
 %token TIMES DIV PLUS MINUS POW EOF
 %token TRUE FALSE LOR LAND OR AND NOT EQ NEQ GT LT GEQ LEQ 
@@ -27,6 +27,8 @@ open TypesAST
 // We specify the return type of each of then non-terminal symbols
 %type <command> start
 %type <command> command
+%type <guardedcommand> guardedCommand0
+%type <guardedcommand> guardedCommand1
 
 // Arithmetic expr
 %type <aexpr> Aexpression0
@@ -42,8 +44,6 @@ open TypesAST
 %type <bexpr> Bexpression3
 %type <bexpr> Bexpression4
 %type <bexpr> Bexpression5
-%type <bexpr> Bexpression6
-%type <bexpr> Bexpression7
 
 
 
@@ -70,8 +70,14 @@ start: command EOF             { $1 }
 // Commands
 command:
   | identifier ASSIGN Aexpression0  { Assign($1, $3)}
-  | IF Bexpression0 THEN command FI { IfFi($2, $4) }
+  | IF guardedCommand0 FI { IfFi($2) }
 
+guardedCommand0:
+  | guardedCommand1 ELSE guardedCommand0 {GuardedCommandSeq($1, $3)}
+  | guardedCommand1     {$1}
+
+guardedCommand1:
+  | Bexpression0 THEN command {GuardedCommand($1, $3)}
 
 //Arithmetic expressions
 Aexpression0:
@@ -104,37 +110,32 @@ identifier:
 
 Bexpression0:
   | Bexpression0 LOR Bexpression1           {LOrExpr($1, $3)}
+  | Bexpression0 OR Bexpression1            {OrExpr($1, $3)} 
   | Bexpression1                            { $1 }
 
 Bexpression1:
   | Bexpression1 LAND Bexpression2          {LAndExpr($1, $3)}
+  | Bexpression1 AND Bexpression2            {AndExpr($1, $3)}
   | Bexpression2                            { $1 }          
 
+
 Bexpression2:
-  | Bexpression2 OR Bexpression3            {OrExpr($1, $3)}
+  | Aexpression0 EQ Aexpression0            {EqExpr($1, $3)}
+  | Aexpression0 NEQ Aexpression0           {NeqExpr($1, $3)}
   | Bexpression3                            { $1 }
 
 Bexpression3:
-  | Bexpression4 AND Bexpression4            {AndExpr($1, $3)}
-  | Bexpression4                            { $1 }
-
-Bexpression4:
-  | Aexpression0 EQ Aexpression0            {EqExpr($1, $3)}
-  | Aexpression0 NEQ Aexpression0           {NeqExpr($1, $3)}
-  | Bexpression5                            { $1 }
-
-Bexpression5:
   | Aexpression0 LT Aexpression0           {LtExpr($1, $3)}
   | Aexpression0 LEQ Aexpression0           {LeqExpr($1, $3)}
   | Aexpression0 GT Aexpression0           {GtExpr($1, $3)}
   | Aexpression0 GEQ Aexpression0           {GeqExpr($1, $3)}
-  | Bexpression6                            { $1 }
+  | Bexpression4                            { $1 }
 
-Bexpression6:
-  | NOT Bexpression7                  {NotExpr($2)}
-  | Bexpression7                            { $1 }
+Bexpression4:
+  | NOT Bexpression5                  {NotExpr($2)}
+  | Bexpression5                            { $1 }
 
-Bexpression7:
+Bexpression5:
   | TRUE                            {Bool(true)}
   | FALSE                           {Bool(false)}
   | LPAR Bexpression0 RPAR              {$2}
