@@ -55,5 +55,8 @@ rule tokenize = parse
 | "<="          { LEQ }
 | "if"          { IF }
 | "fi"          { FI }
+| "do"          { DO }
+| "od"          { OD }
+| ";"           { SEMI }
 | identifier    { IDENTIFIER(LexBuffer<_>.LexemeString lexbuf) }
 | eof           { EOF }

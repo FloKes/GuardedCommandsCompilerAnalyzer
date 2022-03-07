@@ -47,6 +47,8 @@ let rec getASTCommand e =
   match e with
     | Assign(x,y) -> ":=(" + getASTAri(x) + "," + getASTAri (y) + ")"
     | IfFi(x) -> "IF(" + getASTGuardedCommand(x) + ") FI"
+    | DoOd(x) -> "DO(" + getASTGuardedCommand(x) + ") OD"
+    | CommandSeq(x,y) -> ";(" + getASTCommand(x) + ", " + getASTCommand(y) + ")"
 
 and getASTGuardedCommand e =
     match e with
