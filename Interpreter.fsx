@@ -49,6 +49,7 @@ let rec getASTCommand e =
     | IfFi(x) -> "IF(" + getASTGuardedCommand(x) + ") FI"
     | DoOd(x) -> "DO(" + getASTGuardedCommand(x) + ") OD"
     | CommandSeq(x,y) -> ";(" + getASTCommand(x) + ", " + getASTCommand(y) + ")"
+    | Skip  -> "skip"
 
 and getASTGuardedCommand e =
     match e with
@@ -67,7 +68,17 @@ let parse input =
 
 
 // We implement here the function that interacts with the user
-let rec compile n =
+let compileFromFile n =
+    // We parse the input string
+    try
+    let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\gclexample.txt"))
+    // and print the result of evaluating it
+    printfn "AST: %s" (getASTCommand(e))
+    with err -> printfn("Sometin wron")
+    
+
+// We implement here the function that interacts with the user
+let rec compileInteractive n =
     if n = 0 then
         printfn "Bye bye"
     else
@@ -77,8 +88,15 @@ let rec compile n =
         let e = parse (Console.ReadLine())
         // and print the result of evaluating it
         printfn "AST: %s" (getASTCommand(e))
-        compile n
-        with err -> compile (n-1)
+        compileInteractive n
+        with err -> compileInteractive (n-1)
 
-// Start interacting with the user
-compile 3
+
+let rec chooseMethod n=
+    printf "From file: 0, interactive: 1:   "
+    let s = Console.ReadLine()
+    
+    if s = "0" then compileFromFile 0
+    else compileInteractive 3
+
+chooseMethod 0

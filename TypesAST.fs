@@ -34,6 +34,7 @@ type command =
   | IfFi of guardedcommand
   | DoOd of guardedcommand
   | CommandSeq of (command * command)
+  | Skip 
   
 and guardedcommand = 
   | GuardedCommand of (bexpr * command)
