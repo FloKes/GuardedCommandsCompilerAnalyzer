@@ -3,3 +3,37 @@ arrays -
 booleans - 
 guardedCommand1 -
 2guardedCommands
+
+
+// We implement here the function that interacts with the user
+let compileFromFile =
+    // We parse the input string
+    //let e = parse (Console.ReadLine())
+    let e = parse(System.IO.File.ReadAllText ("gclexample.txt"))
+    // and print the result of evaluating it
+    printfn "AST: %s" (getASTCommand(e))
+
+
+// We implement here the function that interacts with the user
+let rec compileInteractive n =
+    if n = 0 then
+        printfn "Bye bye"
+    else
+        printf "Enter an expression: "
+        try
+        // We parse the input string
+        //let e = parse (Console.ReadLine())
+        let e = parse(System.IO.File.ReadAllText ("gclexample.txt"))
+        // and print the result of evaluating it
+        printfn "AST: %s" (getASTCommand(e))
+        compileInteractive n
+        with err -> compileInteractive (n-1)
+
+
+let chooseMethod =
+    printf "From file: 0, interactive: 1 "
+    // let s = Console.ReadLine()
+    // if s = "0" then compileFromFile
+    // else compileInteractive 3
+
+chooseMethod

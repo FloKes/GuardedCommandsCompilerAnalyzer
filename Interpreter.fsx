@@ -10,6 +10,8 @@ open TypesAST
 open Parser
 #load "Lexer.fs"
 open Lexer
+#load "DotWriter.fsx"
+open DotWriter
 
 // We define the evaluation function recursively, by induction on the structure
 // of arithmetic expressions (AST of type expr)
@@ -67,13 +69,14 @@ let parse input =
     res
 
 
-// We implement here the function that interacts with the user
+// We implement here the function that Compiles the program in the text file
 let compileFromFile n =
     // We parse the input string
     try
-    let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\gclexample.txt"))
+    let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\GCLExamples\simple.txt"))
     // and print the result of evaluating it
     printfn "AST: %s" (getASTCommand(e))
+    getProgramGraph e
     with err -> printfn("Sometin wron")
     
 
