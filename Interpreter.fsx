@@ -10,8 +10,8 @@ open TypesAST
 open Parser
 #load "Lexer.fs"
 open Lexer
-#load "DotWriter.fsx"
-open DotWriter
+#load "ProgramGraphGenerator.fsx"
+open ProgramGraphGenerator
 
 // We define the evaluation function recursively, by induction on the structure
 // of arithmetic expressions (AST of type expr)

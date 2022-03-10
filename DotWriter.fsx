@@ -1,5 +1,8 @@
-#load "Interpreter.fsx"
-open TypesAST
+// #load "Interpreter.fsx"
+// open TypesAST
+
+let mutable nodeIndex = 1
+let mutable joinNode = 0
 
 let path = __SOURCE_DIRECTORY__ + "\programGraph.dot"
 let init f=
@@ -15,10 +18,12 @@ let nodeText n =
     "\"q" + (string n) + "\""
 
 let labelText s=
-    "[label=\"   " + s + "   \"]"
+    "[label=\" " + s + " \"]"
 
 let edge (node1, node2)=
+    nodeIndex <- nodeIndex + 1
     (nodeText node1) + " -> " + (nodeText (node2))
+    
 
 // Add new production to the parser, where we produce a parenthisized Aexrp
 let rec getTextAri e =
@@ -50,23 +55,31 @@ let rec getTextBool e =
       | GeqExpr(x,y) -> getTextAri(x) + " >= " + getTextAri(y)
 
 
-let rec writeCommandEdges (e, node) =
+let rec writeCommandEdges (e, startNode, endNode) =
   match e with
-    | Assign(x,y) -> writeLine (edge(node, node + 1) + (labelText (getTextAri(x) + " := " + getTextAri (y))))
-    | Skip  -> writeLine (edge(node, node + 1) + (labelText "skip"))
-    | CommandSeq(x,y) -> writeCommandEdges(x, node) 
-                         writeCommandEdges(y, node + 1)
-    // | IfFi(x) -> "IF(" + getASTGuardedCommand(x) + ") FI"
-    // | DoOd(x) -> "DO(" + getASTGuardedCommand(x) + ") OD"
+    | Assign(x,y) -> writeLine (edge(startNode, endNode) + (labelText (getTextAri(x) + " := " + getTextAri (y))))
+                     int (endNode)
+    | Skip  -> writeLine (edge(startNode, endNode) + (labelText "skip"))
+               int (endNode)
+    | CommandSeq(x,y) -> let newEnd = writeCommandEdges(x, startNode, endNode) 
+                         writeCommandEdges(y, newEnd, newEnd + 1)
+    | IfFi(x) -> getASTGuardedCommand(x, startNode, endNode, endNode + 1)
+    // | DoOd(x) -> getASTGuardedCommand(x, node, node)
 
-// and getASTGuardedCommand e =
-//     match e with
-//         | GuardedCommand(x, y) -> "(" + getTextBool(x) + ") THEN(" + getASTCommand(y) + ")"
-//         | GuardedCommandSeq(x,y) -> getASTGuardedCommand(x) + " [] " + getASTGuardedCommand(y)
+and getASTGuardedCommand (e, startNode, nodeNumber, nextNode) =
+    match e with
+        | GuardedCommand(x, y) -> writeLine(edge(startNode, nodeNumber) + (labelText (getTextBool(x))))
+                                  writeCommandEdges(y, nodeNumber, nextNode)
+                                //   let lastNode = int (writeCommandEdges(y, node + 1))
+                                //   writeLine(edge(node, lastNode) + (labelText ("!(" + getTextBool(x) + ")")))
+                                //   int lastNode
+                                  
+         | GuardedCommandSeq(x,y) -> let joinNode = getASTGuardedCommand(x, startNode, nodeNumber, nextNode)
+                                     getASTGuardedCommand(y, startNode, nodeIndex, joinNode )
 
 
-let getProgramGraph e =
+let printProgramGraph e =
     init 0
-    writeCommandEdges(e, 0)
+    writeCommandEdges(e, 0, 1)
     finish 0
 
