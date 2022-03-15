@@ -1,15 +1,23 @@
-// #load "Interpreter.fsx"
-// open TypesAST
+// We need to import a couple of modules, including the generated lexer and parser
+#r "FsLexYacc.Runtime.10.0.0/lib/net46/FsLexYacc.Runtime.dll"
+open FSharp.Text.Lexing
+open System
+#load "TypesAST.fs"
+open TypesAST
+#load "Parser.fs"
+open Parser
+#load "Lexer.fs"
+open Lexer
+#load "DotWriter.fsx"
+open DotWriter
 
-let mutable nodeIndex = 1
-let mutable joinNode = 0
+// module ProgramGraphGenerator
 
+let mutable nodeIndex = 0
+let mutable continuationNode = 0
+let mutable currentNode = 0
+let programGraph = []
 
-type edgeTypes=
-    | Edge of (int * string * int)
-    | EdgeSeq of (edgeTypes * edgeTypes)
-
-    
 
 // Add new production to the parser, where we produce a parenthisized Aexrp
 let rec getTextAri e =
@@ -40,19 +48,112 @@ let rec getTextBool e =
       | GtExpr(x,y) -> getTextAri(x) + " > " + getTextAri(y)
       | GeqExpr(x,y) -> getTextAri(x) + " >= " + getTextAri(y)
 
-let rec printEdges e =
-    match e with
-      | Edge(startNode, text, endNode) -> "(" + string startNode + ", " + text + ", " + string endNode + ")"
-      | EdgeSeq(x, y) -> printEdges(x) + ", " + printEdges(y)
+let rec getAexprValue e vars =
+  match e with
+    | Num(x) -> x
+    | Identifier(x) -> let mutable r = 0
+                       List.iteri(fun i (id, value) -> if id = x then r <- value) vars
+                       r
+    | IdentifierArray(x, y) -> 1
+    | TimesExpr(x,y) -> getAexprValue x vars  * getAexprValue y vars
+    | DivExpr(x,y) -> getAexprValue x vars  / getAexprValue y vars
+    | PlusExpr(x,y) -> getAexprValue x vars  + getAexprValue y vars
+    | MinusExpr(x,y) -> getAexprValue x vars  - getAexprValue y vars
+    | PowExpr(x,y) -> 2
+    | UPlusExpr(x) -> getAexprValue x vars 
+    | UMinusExpr(x) -> - getAexprValue x vars 
+
+
+let parseInitialization s =
+    [ ("x", 3); ("y", 5); ("z", 4) ]
+
+let printVars vars = 
+    let mutable s = ""
+    List.iteri(fun i (id, value) -> s <- s + id + "=" + string value + ", ") vars
+    printfn "Node %d: %s" currentNode s
+
+let performCalc action vars =
+    match action with
+        | Assignment(var, expr) ->  let varText = getTextAri var
+                                    let result = getAexprValue expr vars 
+                                    vars |> List.mapi (fun i (id, value) -> if varText = id then (varText, result) else (id, value))
+                                    
+        | SkipAction -> vars
+
+let rec stepExecute nodes vars=
+    Console.ReadKey() |> ignore
+    match nodes with
+        | Node(num, edge) -> match edge with
+                                Edge(act, nextNode) -> currentNode <- num
+                                                       printVars vars
+                                                       let res = performCalc act vars
+                                                       stepExecute nextNode res
+        | DummyNode -> currentNode <- -1
+                       printVars vars
+
+
+
+
+let addNodeToEdge edge node =
+    match edge with
+        | Edge(act, next) -> Edge(act, node)
+
+let combineNodeSeq node1 node2 =
+    match node1 with
+        | Node(num, edges) ->  Node(num, addNodeToEdge edges node2) 
+
 
 let rec generateCommandEdges (e, startNode, endNode) =
   match e with
-    | Assign(x,y) -> Edge(startNode, getTextAri(x) + " := " + getTextAri (y), endNode)
-    | Skip  -> Edge(startNode, "skip", endNode)
-    | CommandSeq(x,y) -> EdgeSeq(generateCommandEdges(x, startNode, endNode), generateCommandEdges(y, startNode, endNode))
+    | Assign(x,y) -> nodeIndex <- nodeIndex + 1
+                     continuationNode <- endNode
+                     Node(startNode, Edge(Assignment(x, y), DummyNode))
+    | Skip  ->  nodeIndex <- nodeIndex + 1
+                continuationNode <- endNode
+                Node(startNode, Edge(SkipAction, DummyNode))
+
+    | CommandSeq(x,y) -> let a = generateCommandEdges(x, continuationNode, nodeIndex + 1)
+                         let b = generateCommandEdges(y, continuationNode, nodeIndex + 1)
+                         combineNodeSeq a b
+
+
+let printAction act =
+    match act with
+        | Assignment(x, y) -> "Assignment"
+        | SkipAction -> "Skip"
+
+let rec getNodeString node=
+    match node with
+        | Node(x, y) -> match y with
+                            | Edge(action, nextNode) -> "(" + string x + ")" + (printAction action) + getNodeString nextNode
+        | DummyNode -> "(End)"
 
 let getProgramGraph e =
-    let edges = generateCommandEdges (e, 0 , 1)
-    let text = printEdges edges
-    printfn "%s" text
+    let nodes = generateCommandEdges (e, 0 , 1)
+    printfn "%s" (getNodeString nodes)
+    nodes
 
+
+let parse input =
+    // translate string into a buffer of characters
+    let lexbuf = LexBuffer<char>.FromString input
+    // translate the buffer into a stream of tokens and parse them
+    let res = Parser.start Lexer.tokenize lexbuf
+
+    // return the result of parsing (i.e. value of type "expr")
+    res
+
+
+// We implement here the function that Compiles the program in the text file
+let compileFromFile n =
+    // We parse the input string
+    let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\GCLExamples\simple.txt"))
+    let nodes = getProgramGraph e
+    let s = Console.ReadLine()
+    let vars = parseInitialization s
+
+    let a = stepExecute nodes vars
+    printfn ""
+
+    
+compileFromFile 0

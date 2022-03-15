@@ -76,7 +76,6 @@ let compileFromFile n =
     let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\GCLExamples\simple.txt"))
     // and print the result of evaluating it
     printfn "AST: %s" (getASTCommand(e))
-    getProgramGraph e
     with err -> printfn("Sometin wron")
     
 

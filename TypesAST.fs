@@ -39,3 +39,18 @@ type command =
 and guardedcommand = 
   | GuardedCommand of (bexpr * command)
   | GuardedCommandSeq of (guardedcommand * guardedcommand)
+
+
+
+type action=
+    | SkipAction
+    | Assignment of (aexpr * aexpr)
+    | Boolean of bexpr
+
+type edgeTypes=
+    | Edge of (action * nodeTypes)
+    | MultipleEdges of (edgeTypes * edgeTypes)
+
+and nodeTypes=
+  | Node of (int * edgeTypes)
+  | DummyNode
