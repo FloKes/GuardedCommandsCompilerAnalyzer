@@ -1,5 +1,5 @@
+x := 5 + 1;
 skip;
-x:=5*y;
-y:= y * x;
-b := 7;
-skip
+skip;
+skip;
+y := x -1

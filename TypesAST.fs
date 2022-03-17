@@ -47,10 +47,21 @@ type action=
     | Assignment of (aexpr * aexpr)
     | Boolean of bexpr
 
+
+
 type edgeTypes=
-    | Edge of (action * nodeTypes)
-    | MultipleEdges of (edgeTypes * edgeTypes)
+    | Edge of (int * action * int)
 
 and nodeTypes=
   | Node of (int * edgeTypes)
-  | DummyNode
+  | StartNode
+  | EndNode
+
+
+// type edgeTypes=
+//     | Edge of (action * nodeTypes)
+//     | MultipleEdges of (edgeTypes * edgeTypes)
+
+// and nodeTypes=
+//   | Node of (int * edgeTypes)
+//   | DummyNode

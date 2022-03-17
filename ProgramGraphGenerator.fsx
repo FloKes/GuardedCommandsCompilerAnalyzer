@@ -16,7 +16,7 @@ open DotWriter
 let mutable nodeIndex = 0
 let mutable continuationNode = 0
 let mutable currentNode = 0
-let programGraph = []
+//let programGraph = []
 
 
 // Add new production to the parser, where we produce a parenthisized Aexrp
@@ -80,58 +80,64 @@ let performCalc action vars =
                                     
         | SkipAction -> vars
 
-let rec stepExecute nodes vars=
-    Console.ReadKey() |> ignore
-    match nodes with
-        | Node(num, edge) -> match edge with
-                                Edge(act, nextNode) -> currentNode <- num
-                                                       printVars vars
-                                                       let res = performCalc act vars
-                                                       stepExecute nextNode res
-        | DummyNode -> currentNode <- -1
-                       printVars vars
+
+// let rec stepExecute nodes vars=
+//     Console.ReadKey() |> ignore
+//     match nodes with
+//         | Node(num, edge) -> match edge with
+//                                 Edge(prev, act, nextNode) -> currentNode <- num
+//                                                              printVars vars
+//                                                              let res = performCalc act vars
+//                                                              stepExecute nextNode res
+//         | EndNode -> currentNode <- -1
+//                      printVars vars
 
 
 
+// let addNodeToEdge edge node =
+//     match edge with
+//         | Edge(prev, act, next) -> Edge(act, node)
 
-let addNodeToEdge edge node =
-    match edge with
-        | Edge(act, next) -> Edge(act, node)
-
-let combineNodeSeq node1 node2 =
-    match node1 with
-        | Node(num, edges) ->  Node(num, addNodeToEdge edges node2) 
+// let combineNodeSeq node1 node2 =
+//     match node1 with
+//         | Node(num, edges) ->  Node(num, addNodeToEdge edges node2) 
 
 
-let rec generateCommandEdges (e, startNode, endNode) =
+let rec generateCommandEdges (e, startNode, endNode, programGraph) =
   match e with
     | Assign(x,y) -> nodeIndex <- nodeIndex + 1
                      continuationNode <- endNode
-                     Node(startNode, Edge(Assignment(x, y), DummyNode))
+                     programGraph @ [Edge(startNode, Assignment(x, y), endNode)]
     | Skip  ->  nodeIndex <- nodeIndex + 1
                 continuationNode <- endNode
-                Node(startNode, Edge(SkipAction, DummyNode))
+                programGraph @ [Edge(startNode, SkipAction, endNode)]
 
-    | CommandSeq(x,y) -> let a = generateCommandEdges(x, continuationNode, nodeIndex + 1)
-                         let b = generateCommandEdges(y, continuationNode, nodeIndex + 1)
-                         combineNodeSeq a b
+    | CommandSeq(x,y) -> let a = generateCommandEdges(x, continuationNode, nodeIndex + 1, programGraph)
+                         let b = generateCommandEdges(y, continuationNode, nodeIndex + 1, a)
+                         b
+    // | IfFi(x) -> 
+
+// let rec generateGCEdges e startNode endNode = 
+//     match e with
+//         | guardedcommand()
 
 
 let printAction act =
     match act with
-        | Assignment(x, y) -> "Assignment"
+        | Assignment(x, y) -> getTextAri x + " := " + getTextAri y
         | SkipAction -> "Skip"
+        | Boolean(x) -> getTextBool x
 
-let rec getNodeString node=
-    match node with
-        | Node(x, y) -> match y with
-                            | Edge(action, nextNode) -> "(" + string x + ")" + (printAction action) + getNodeString nextNode
-        | DummyNode -> "(End)"
+let rec getEdgeString edge=
+    match edge with
+        | Edge(orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
+
+let printProgramGraph graph =
+    List.iteri (fun i e -> printfn "%s" (getEdgeString e)) graph
 
 let getProgramGraph e =
-    let nodes = generateCommandEdges (e, 0 , 1)
-    printfn "%s" (getNodeString nodes)
-    nodes
+    let graph = generateCommandEdges (e, 0 , 1, [])
+    printProgramGraph graph
 
 
 let parse input =
@@ -143,17 +149,13 @@ let parse input =
     // return the result of parsing (i.e. value of type "expr")
     res
 
-
 // We implement here the function that Compiles the program in the text file
 let compileFromFile n =
     // We parse the input string
     let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\GCLExamples\simple.txt"))
-    let nodes = getProgramGraph e
-    let s = Console.ReadLine()
-    let vars = parseInitialization s
+    getProgramGraph e
 
-    let a = stepExecute nodes vars
+    //let a = stepExecute nodes vars
     printfn ""
 
-    
 compileFromFile 0
