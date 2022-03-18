@@ -1,6 +1,10 @@
+deprecated/
+images/
 Calculator*
 Parser.fs
 Parser.fsi
 Lexer.fs
 .vscode
 .ionide
+.fake
+*.dot
