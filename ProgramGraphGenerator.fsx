@@ -18,9 +18,19 @@ open ActionToText
 let mutable nodeIndex = 0
 let mutable continuationNode = 0
 let mutable currentNode = 0
+
+//alo implement as stack
+let mutable branchStartNode = -1
 //let programGraph = []
 
+let incNodeIndex() = nodeIndex <- nodeIndex + 1
 
+let rec getEdgeString edge=
+    match edge with
+        | Edge(orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
+
+let printProgramGraph graph =
+    List.iteri (fun i e -> printfn "%s" (getEdgeString e)) graph
 
 let rec getAexprValue e vars =
   match e with
@@ -54,57 +64,65 @@ let performCalc action vars =
                                     
         | SkipAction -> vars
 
+let getLastElement list =
+    List.item ((List.length list) - 1) list
 
-// let rec stepExecute nodes vars=
-//     Console.ReadKey() |> ignore
-//     match nodes with
-//         | Node(num, edge) -> match edge with
-//                                 Edge(prev, act, nextNode) -> currentNode <- num
-//                                                              printVars vars
-//                                                              let res = performCalc act vars
-//                                                              stepExecute nextNode res
-//         | EndNode -> currentNode <- -1
-//                      printVars vars
+// let removeLastElement list =
+
+
+let updateEdge edge newEnd =
+    match edge with
+        | Edge(s, act, e) -> Edge(s, act, newEnd)
 
 
 
-// let addNodeToEdge edge node =
-//     match edge with
-//         | Edge(prev, act, next) -> Edge(act, node)
+let changeLastNodes (list, lastNode, joinNode) =
+    nodeIndex <- nodeIndex - 1
+    list |> List.mapi (fun i v -> match v with 
+                                        | Edge(s, act, e) -> if e = lastNode then updateEdge v joinNode
+                                                                             else v)
 
-// let combineNodeSeq node1 node2 =
-//     match node1 with
-//         | Node(num, edges) ->  Node(num, addNodeToEdge edges node2) 
-
-
-let rec generateCommandEdges (e, startNode, endNode, programGraph) =
+let rec generateCommandEdges (e, startNode, endNode, programGraph, startBranch, endBranch) =
   match e with
-    | Assign(x,y) -> nodeIndex <- nodeIndex + 1
+    | Assign(x,y) -> incNodeIndex()
                      continuationNode <- endNode
                      programGraph @ [Edge(startNode, Assignment(x, y), endNode)]
-    | Skip  ->  nodeIndex <- nodeIndex + 1
+    | Skip  ->  incNodeIndex()
                 continuationNode <- endNode
                 programGraph @ [Edge(startNode, SkipAction, endNode)]
 
-    | CommandSeq(x,y) -> let a = generateCommandEdges(x, continuationNode, nodeIndex + 1, programGraph)
-                         let b = generateCommandEdges(y, continuationNode, nodeIndex + 1, a)
-                         b
-//     | IfFi(x) -> generateGCEdges x
+    | CommandSeq(x,y) -> let a = generateCommandEdges(x, continuationNode, nodeIndex + 1, programGraph, startBranch, endBranch)
+                         generateCommandEdges(y, continuationNode, nodeIndex + 1, a, startBranch, endBranch)
 
-// let rec generateGCEdges (e, startNode, endNode, programGraph) = 
-//     match e with
-//         | GuardedCommand(b, exp) -> let a = programGraph @ [Edge(startNode, getTextBool b, endNode)]
+    | IfFi(x) -> let startBranch = startNode
+                 branchStartNode <- startBranch
+                 let a = generateGCEdges (x, startNode, endNode, programGraph, startBranch, endBranch)
+                 a
+
+and generateGCEdges (e, startNode, endNode, programGraph, startBranch, endBranch) = 
+    match e with
+        | GuardedCommand(b, exp) -> incNodeIndex()
+                                    continuationNode <- endNode
+                                    let a = programGraph @ [Edge(startNode, Boolean(b), endNode)]
+                                    let b = generateCommandEdges(exp, continuationNode, nodeIndex + 1, a, startBranch, endBranch)
+                                    if endBranch = -1  
+                                    then b
+                                    else changeLastNodes (b, nodeIndex, endBranch)
+                                    
+        | GuardedCommandSeq(fst, snd) -> let a = generateGCEdges(fst, branchStartNode, endNode, programGraph, startBranch, endBranch)
+                                         let endBranch = nodeIndex
+                                         generateGCBranchEdges(snd, branchStartNode, nodeIndex + 1, a, startBranch, endBranch)
+                                         
 
 
-let rec getEdgeString edge=
-    match edge with
-        | Edge(orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
-
-let printProgramGraph graph =
-    List.iteri (fun i e -> printfn "%s" (getEdgeString e)) graph
+and generateGCBranchEdges (e, startNode, endNode, programGraph, startBranch, endBranch) =
+        match e with
+        | GuardedCommand(x) ->  generateGCEdges (e, startNode, endNode, programGraph, startBranch, endBranch)                          
+        | GuardedCommandSeq(fst, snd) -> let a = generateGCEdges(fst, branchStartNode, endNode, programGraph, startBranch, endBranch)
+                                         generateGCBranchEdges(snd, branchStartNode, nodeIndex + 1, a, startBranch, endBranch)
 
 let getProgramGraph e =
-    let graph = generateCommandEdges (e, 0 , 1, [])
+    let graph = generateCommandEdges (e, 0 , 1, [], -1, -1)
     printProgramGraph graph
     graph 
 
