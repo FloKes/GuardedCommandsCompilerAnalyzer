@@ -18,12 +18,17 @@ open ActionToText
 let mutable nodeIndex = 0
 let mutable continuationNode = 0
 let mutable currentNode = 0
+let mutable edgeSteps = 0
+let mutable lastBranchJoin = -1
 
 //alo implement as stack
 let mutable branchStartNode = -1
 //let programGraph = []
 
 let incNodeIndex() = nodeIndex <- nodeIndex + 1
+
+let getLastElement list =
+    List.item ((List.length list) - 1) list
 
 type Mem = (string * int) list * (string * int list) list
 
@@ -33,6 +38,10 @@ let mem = Mem([("x", 5); ("y", 5)], [])
 let rec getEdgeString edge=
     match edge with
         | Edge(orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
+
+let getEdgeTuple edge=
+    match edge with
+        | Edge(orig, action, dest) -> "(" + string orig + ", " + (printAction action) + ", " + string dest + ")"
 
 let printProgramGraph graph =
     List.iteri (fun i e -> printfn "%s" (getEdgeString e)) graph
@@ -53,11 +62,17 @@ let rec getAexprValue e vars =
     | UMinusExpr(x) -> - getAexprValue x vars 
 
 
-
 let printVars vars = 
     let mutable s = ""
     List.iteri(fun i (id, value) -> s <- s + id + "=" + string value + ", ") vars
     printfn "Node %d: %s" currentNode s
+
+let printEdgeTuples list = 
+    printf "["
+    list |> List.iter (fun e -> printf "%s" (getEdgeTuple e))
+    printf "]"
+    printfn ""
+
 
 let performCalc action vars =
     match action with
@@ -67,11 +82,15 @@ let performCalc action vars =
                                     
         | SkipAction -> vars
 
-let getLastElement list =
-    List.item ((List.length list) - 1) list
 
 // let removeLastElement list =
 
+let joinLists list1 list2 = 
+    let a = list1 @ list2
+    if edgeSteps = 1 then
+        Console.ReadLine() |> ignore
+        printEdgeTuples a
+    a
 
 let updateEdge edge newEnd =
     match edge with
@@ -80,19 +99,30 @@ let updateEdge edge newEnd =
 
 
 let changeLastNodes (list, lastNode, joinNode) =
+    if edgeSteps = 1 then
+        printfn "Changing last Nodes \nbefore:"
+        printEdgeTuples list
+        Console.ReadLine() |> ignore
     nodeIndex <- nodeIndex - 1
-    list |> List.mapi (fun i v -> match v with 
+    let l = list |> List.mapi (fun i v -> match v with 
                                         | Edge(s, act, e) -> if e = lastNode then updateEdge v joinNode
                                                                              else v)
+    if edgeSteps = 1 then
+        printf "After \n"
+        printEdgeTuples l
+        Console.ReadLine() |> ignore                                                                             
+        printfn "Done"
+    l
+
 
 let rec generateCommandEdges (e, startNode, endNode, programGraph, startBranch, endBranch) =
   match e with
     | Assign(x,y) -> incNodeIndex()
                      continuationNode <- endNode
-                     programGraph @ [Edge(startNode, Assignment(x, y), endNode)]
+                     joinLists programGraph [Edge(startNode, Assignment(x, y), endNode)]
     | Skip  ->  incNodeIndex()
                 continuationNode <- endNode
-                programGraph @ [Edge(startNode, SkipAction, endNode)]
+                joinLists programGraph [Edge(startNode, SkipAction, endNode)]
 
     | CommandSeq(x,y) -> let a = generateCommandEdges(x, continuationNode, nodeIndex + 1, programGraph, startBranch, endBranch)
                          generateCommandEdges(y, continuationNode, nodeIndex + 1, a, startBranch, endBranch)
@@ -107,12 +137,13 @@ and generateGCEdges (e, startNode, endNode, programGraph, startBranch, endBranch
     match e with
         | GuardedCommand(b, exp) -> incNodeIndex()
                                     continuationNode <- endNode
-                                    let a = programGraph @ [Edge(startNode, Boolean(b), endNode)]
+                                    let a = joinLists programGraph [Edge(startNode, Boolean(b), endNode)]
                                     let b = generateCommandEdges(exp, continuationNode, nodeIndex + 1, a, startBranch, endBranch)
-                                    // if endBranch = -1  
-                                    // then b
-                                    // else changeLastNodes (b, nodeIndex, endBranch)
-                                    b
+                                    let (Edge(_,_,lastBranchFinish)) = getLastElement b
+                                    if endBranch = -1  
+                                    then b
+                                    else changeLastNodes (b, lastBranchFinish, endBranch)
+                                    // b
                                     
         | GuardedCommandSeq(fst, snd) -> let a = generateGCEdges(fst, branchStartNode, endNode, programGraph, startBranch, endBranch)
                                          let endBranch = nodeIndex
@@ -126,26 +157,23 @@ and generateGCBranchEdges (e, startNode, endNode, programGraph, startBranch, end
         | GuardedCommandSeq(fst, snd) -> let a = generateGCEdges(fst, branchStartNode, endNode, programGraph, startBranch, endBranch)
                                          generateGCBranchEdges(snd, branchStartNode, nodeIndex + 1, a, startBranch, endBranch)
 
+
 let getProgramGraph e =
     let graph = generateCommandEdges (e, 0 , 1, [], -1, -1)
-    printProgramGraph graph
     graph 
 
 
 let parse input =
-    // translate string into a buffer of characters
     let lexbuf = LexBuffer<char>.FromString input
-    // translate the buffer into a stream of tokens and parse them
     let res = Parser.start Lexer.tokenize lexbuf
-
-    // return the result of parsing (i.e. value of type "expr")
     res
 
-// We implement here the function that Compiles the program in the text file
 let compileFromFile n =
-    // We parse the input string
     let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\GCLExamples\simple.txt"))
+    printf "Do you want to see edge steps (0:no, 1:yes): "
+    edgeSteps <- int (Console.ReadLine())
     let g = getProgramGraph e
+    printProgramGraph g
     DotWriter.writeProgramGraph g
 
     //let a = stepExecute nodes vars
