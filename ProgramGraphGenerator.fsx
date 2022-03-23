@@ -25,6 +25,11 @@ let mutable branchStartNode = -1
 
 let incNodeIndex() = nodeIndex <- nodeIndex + 1
 
+type Mem = (string * int) list * (string * int list) list
+
+// Or use map
+let mem = Mem([("x", 5); ("y", 5)], [])
+
 let rec getEdgeString edge=
     match edge with
         | Edge(orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
@@ -35,8 +40,8 @@ let printProgramGraph graph =
 let rec getAexprValue e vars =
   match e with
     | Num(x) -> x
-    | Identifier(x) -> let mutable r = 0
-                       List.iteri(fun i (id, value) -> if id = x then r <- value) vars
+    | Identifier(x) -> let mutable r = 0 // If i don't find x, we return 0, which should be
+                       List.iter(fun (id, value) -> if id = x then r <- value else failwith "unkown raviable") vars
                        r
     | IdentifierArray(x, y) -> 1
     | TimesExpr(x,y) -> getAexprValue x vars  * getAexprValue y vars
@@ -48,8 +53,6 @@ let rec getAexprValue e vars =
     | UMinusExpr(x) -> - getAexprValue x vars 
 
 
-let parseInitialization s =
-    [ ("x", 3); ("y", 5); ("z", 4) ]
 
 let printVars vars = 
     let mutable s = ""
@@ -96,7 +99,8 @@ let rec generateCommandEdges (e, startNode, endNode, programGraph, startBranch, 
 
     | IfFi(x) -> let startBranch = startNode
                  branchStartNode <- startBranch
-                 let a = generateGCEdges (x, startNode, endNode, programGraph, startBranch, endBranch)
+                 // make generate GCEdges return where stuff needs to be merged, and then do it
+                 let a = generateGCEdges (x, startNode, endNode, programGraph, startBranch, -1)
                  a
 
 and generateGCEdges (e, startNode, endNode, programGraph, startBranch, endBranch) = 
@@ -105,9 +109,10 @@ and generateGCEdges (e, startNode, endNode, programGraph, startBranch, endBranch
                                     continuationNode <- endNode
                                     let a = programGraph @ [Edge(startNode, Boolean(b), endNode)]
                                     let b = generateCommandEdges(exp, continuationNode, nodeIndex + 1, a, startBranch, endBranch)
-                                    if endBranch = -1  
-                                    then b
-                                    else changeLastNodes (b, nodeIndex, endBranch)
+                                    // if endBranch = -1  
+                                    // then b
+                                    // else changeLastNodes (b, nodeIndex, endBranch)
+                                    b
                                     
         | GuardedCommandSeq(fst, snd) -> let a = generateGCEdges(fst, branchStartNode, endNode, programGraph, startBranch, endBranch)
                                          let endBranch = nodeIndex

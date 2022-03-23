@@ -9,3 +9,12 @@ if x>5 -> if x>5 -> skip
              x:= 123
 fi;
 skip
+
+
+
+x := 5;
+if x<5 -> x:= 1 
+[] x>5 -> if x<5 -> x:= 1 
+[] x>5 -> skip
+fi
+fi
