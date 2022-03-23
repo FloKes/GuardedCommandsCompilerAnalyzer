@@ -26,6 +26,10 @@ let mutable branchStartNode = -1
 //let programGraph = []
 
 let incNodeIndex() = nodeIndex <- nodeIndex + 1
+let decNodeIndex() = 
+    nodeIndex <- nodeIndex - 1
+    printfn "Node decremented to %d" nodeIndex
+
 
 let getLastElement list =
     List.item ((List.length list) - 1) list
@@ -46,22 +50,6 @@ let getEdgeTuple edge=
 let printProgramGraph graph =
     List.iteri (fun i e -> printfn "%s" (getEdgeString e)) graph
 
-let rec getAexprValue e vars =
-  match e with
-    | Num(x) -> x
-    | Identifier(x) -> let mutable r = 0 // If i don't find x, we return 0, which should be
-                       List.iter(fun (id, value) -> if id = x then r <- value else failwith "unkown raviable") vars
-                       r
-    | IdentifierArray(x, y) -> 1
-    | TimesExpr(x,y) -> getAexprValue x vars  * getAexprValue y vars
-    | DivExpr(x,y) -> getAexprValue x vars  / getAexprValue y vars
-    | PlusExpr(x,y) -> getAexprValue x vars  + getAexprValue y vars
-    | MinusExpr(x,y) -> getAexprValue x vars  - getAexprValue y vars
-    | PowExpr(x,y) -> 2
-    | UPlusExpr(x) -> getAexprValue x vars 
-    | UMinusExpr(x) -> - getAexprValue x vars 
-
-
 let printVars vars = 
     let mutable s = ""
     List.iteri(fun i (id, value) -> s <- s + id + "=" + string value + ", ") vars
@@ -72,18 +60,6 @@ let printEdgeTuples list =
     list |> List.iter (fun e -> printf "%s" (getEdgeTuple e))
     printf "]"
     printfn ""
-
-
-let performCalc action vars =
-    match action with
-        | Assignment(var, expr) ->  let varText = getTextAri var
-                                    let result = getAexprValue expr vars 
-                                    vars |> List.mapi (fun i (id, value) -> if varText = id then (varText, result) else (id, value))
-                                    
-        | SkipAction -> vars
-
-
-// let removeLastElement list =
 
 let joinLists list1 list2 = 
     let a = list1 @ list2
@@ -96,14 +72,12 @@ let updateEdge edge newEnd =
     match edge with
         | Edge(s, act, e) -> Edge(s, act, newEnd)
 
-
-
 let changeLastNodes (list, lastNode, joinNode) =
     if edgeSteps = 1 then
         printfn "Changing last Nodes \nbefore:"
         printEdgeTuples list
         Console.ReadLine() |> ignore
-    nodeIndex <- nodeIndex - 1
+    decNodeIndex()
     let l = list |> List.mapi (fun i v -> match v with 
                                         | Edge(s, act, e) -> if e = lastNode then updateEdge v joinNode
                                                                              else v)
@@ -114,6 +88,14 @@ let changeLastNodes (list, lastNode, joinNode) =
         printfn "Done"
     l
 
+
+let performCalc action vars =
+    match action with
+        | Assignment(var, expr) ->  let varText = getTextAri var
+                                    let result = getAexprValue expr vars 
+                                    vars |> List.mapi (fun i (id, value) -> if varText = id then (varText, result) else (id, value))
+                                    
+        | SkipAction -> vars
 
 let rec generateCommandEdges (e, startNode, endNode, programGraph, startBranch, endBranch) =
   match e with
@@ -142,7 +124,10 @@ and generateGCEdges (e, startNode, endNode, programGraph, startBranch, endBranch
                                     let (Edge(_,_,lastBranchFinish)) = getLastElement b
                                     if endBranch = -1  
                                     then b
-                                    else changeLastNodes (b, lastBranchFinish, endBranch)
+                                    else 
+                                        let b = changeLastNodes (b, lastBranchFinish, endBranch)
+                                        continuationNode <- endBranch
+                                        b
                                     // b
                                     
         | GuardedCommandSeq(fst, snd) -> let a = generateGCEdges(fst, branchStartNode, endNode, programGraph, startBranch, endBranch)

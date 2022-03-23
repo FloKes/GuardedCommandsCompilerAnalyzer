@@ -36,3 +36,19 @@ let printAction act =
         | Assignment(x, y) -> getTextAri x + " := " + getTextAri y
         | SkipAction -> "Skip"
         | Boolean(x) -> getTextBool x
+
+
+let rec getAexprValue e vars =
+  match e with
+    | Num(x) -> x
+    | Identifier(x) -> let mutable r = 0 // If i don't find x, we return 0, which should be
+                       List.iter(fun (id, value) -> if id = x then r <- value else failwith "unkown raviable") vars
+                       r
+    | IdentifierArray(x, y) -> 1
+    | TimesExpr(x,y) -> getAexprValue x vars  * getAexprValue y vars
+    | DivExpr(x,y) -> getAexprValue x vars  / getAexprValue y vars
+    | PlusExpr(x,y) -> getAexprValue x vars  + getAexprValue y vars
+    | MinusExpr(x,y) -> getAexprValue x vars  - getAexprValue y vars
+    | PowExpr(x,y) -> 2
+    | UPlusExpr(x) -> getAexprValue x vars 
+    | UMinusExpr(x) -> - getAexprValue x vars 
