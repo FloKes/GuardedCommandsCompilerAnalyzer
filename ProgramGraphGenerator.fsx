@@ -145,6 +145,9 @@ let compileFromFile n =
     let g = getProgramGraph e
     printProgramGraph g
     DotWriter.writeProgramGraph g
+
+    // let lastNode = (getDepth e) + 1
+    // printfn "Last node will be: %d" lastNode
     // getDepth e |> ignore
     //let a = stepExecute nodes vars
     printfn ""

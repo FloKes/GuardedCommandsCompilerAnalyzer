@@ -1,4 +1,10 @@
-if x>=y -> z:=x
-[] y>x -> z:=y
-fi;
-skip
+i:=0;
+x:=0;
+y:=0;
+do i<10 -> if A[i]>=0 -> x:=x+A[i];
+                         i:=i+1
+           [] A[i]<0 -> i:=i+1;
+                        skip
+           fi;
+           y:=y+1
+od
