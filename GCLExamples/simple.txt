@@ -1,10 +1,4 @@
-i:=0;
-x:=0;
-y:=0;
-do i<10 -> if A[i]>=0 -> x:=x+A[i];
-                         i:=i+1
-           [] A[i]<0 -> i:=i+1;
-                        skip
-           fi;
-           y:=y+1
-od
+if x<5 -> x:= 1 
+[] x>5 -> skip
+fi;
+skip
