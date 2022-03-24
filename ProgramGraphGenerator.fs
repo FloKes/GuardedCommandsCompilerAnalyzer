@@ -1,28 +1,12 @@
 module ProgramGraphGenerator
 
 let mutable freshNodeIndex = 1
-let mutable continuationNode = 0
-let mutable currentNode = 0
 let mutable edgeSteps = 0
-let mutable lastBranchJoin = -1
-
-//alo implement as stack
-let mutable branchStartNode = -1
-//let programGraph = []
 
 let incFreshNodeIndex() = freshNodeIndex <- freshNodeIndex + 1
 let decFreshNodeIndex() = 
     freshNodeIndex <- freshNodeIndex - 1
     printfn "Node decremented to %d" freshNodeIndex
-
-
-let getLastElement list =
-    List.item ((List.length list) - 1) list
-
-type Mem = (string * int) list * (string * int list) list
-
-// Or use map
-let mem = Mem([("x", 5); ("y", 5)], [])
 
 let rec getEdgeString edge=
     match edge with
@@ -34,11 +18,6 @@ let getEdgeTuple edge=
 
 let printProgramGraph graph =
     List.iteri (fun i e -> printfn "%s" (getEdgeString e)) graph
-
-let printVars vars = 
-    let mutable s = ""
-    List.iteri(fun i (id, value) -> s <- s + id + "=" + string value + ", ") vars
-    printfn "Node %d: %s" currentNode s
 
 let printEdgeTuples list = 
     printf "["
@@ -59,21 +38,6 @@ let joinLists list1 list2 =
         printEdgeTuples a
     updateNodeIndex a
     a
-
-let updateEdge edge newEnd =
-    match edge with
-        | Edge(s, act, e) -> Edge(s, act, newEnd)
-
-
-
-let performCalc action vars =
-    match action with
-        | Assignment(var, expr) ->  let varText = getTextAri var
-                                    let result = getAexprValue expr vars 
-                                    vars |> List.mapi (fun i (id, value) -> if varText = id then (varText, result) else (id, value))
-                                    
-        | SkipAction -> vars
-
 
 let getFresh n =
     printfn "get fresh: %d" (freshNodeIndex + n)
@@ -113,3 +77,10 @@ let getProgramGraph e =
     printfn "Last node will be: %d" lastNode
     let graph = generateCommandEdges (e, 0 , lastNode, [])
     graph 
+
+
+// input parser
+let parse input =
+    let lexbuf = LexBuffer<char>.FromString input
+    let res = Parser.start Lexer.tokenize lexbuf
+    res
