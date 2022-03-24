@@ -92,6 +92,12 @@ let printMemAtTime time mem =
     printf "%s action: %s" time (getMemString mem)
     Console.ReadLine() |> ignore
 
+let evaluateListOfBooleans edgeList mem =
+    let mutable counter = 0
+    edgeList |> List.iter (fun (_, act, _) -> match act with | Boolean(bexp) -> if (evaluateBoolean bexp mem) then counter <- counter + 1)
+    counter
+
+
 (*
 Pattern match on type of act (act should maybe be changed to sth else)
 If assign or skip, run apply action to memory, and call visit to edges on the next node
@@ -114,14 +120,26 @@ let rec visitEdges (edges:list<Edge>, pg:list<Edge>, mem:Mem) =
                                                 printMemAtTime "After" mem
                                                 let nextEdges = filterEdgesByStart (pg, e)
                                                 visitEdges (nextEdges, pg, mem)
-                                | Boolean(bexp) -> if (evaluateBoolean bexp mem) then
-                                                    printEdgeDecomposed s act e
-                                                    printMemAtTime "Before" mem
-                                                    printMemAtTime "After" mem 
-                                                    let nextEdges = filterEdgesByStart (pg, e)
-                                                    visitEdges (nextEdges, pg, mem)
-                                                   else
-                                                    visitEdges (tail, pg, mem)
+                                | Boolean(bexp) ->  let headEval = evaluateBoolean bexp mem
+                                                    let tailEval = evaluateListOfBooleans tail mem
+                                                    if not headEval && tailEval = 0 then
+                                                        failwith "Program stuck"
+                                                        printfn "Program stuck"
+                                                    else if headEval && tailEval > 0 then
+                                                        printfn "Non deterministic choice made"
+                                                        printEdgeDecomposed s act e
+                                                        printMemAtTime "Before" mem
+                                                        printMemAtTime "After" mem 
+                                                        let nextEdges = filterEdgesByStart (pg, e)
+                                                        visitEdges (nextEdges, pg, mem)
+                                                    else if headEval && tailEval = 0 then
+                                                        printEdgeDecomposed s act e
+                                                        printMemAtTime "Before" mem
+                                                        printMemAtTime "After" mem 
+                                                        let nextEdges = filterEdgesByStart (pg, e)
+                                                        visitEdges (nextEdges, pg, mem)
+                                                    else
+                                                        visitEdges (tail, pg, mem)
     | [] -> printfn "\nProgram terminated :)" 
             
 

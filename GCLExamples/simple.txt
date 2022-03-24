@@ -1,3 +1,5 @@
 if false -> skip
-[] true -> x:=x * 7
+[] false -> x:=x * 7
+[] true -> skip; x:= 5
+[] true -> skip
 fi
