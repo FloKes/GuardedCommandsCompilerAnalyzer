@@ -122,7 +122,8 @@ let rec visitEdges (edges:list<Edge>, pg:list<Edge>, mem:Mem) =
                                                     visitEdges (nextEdges, pg, mem)
                                                    else
                                                     visitEdges (tail, pg, mem)
-    | [] -> mem
+    | [] -> printfn "\nProgram terminated :)" 
+            
 
 
 
