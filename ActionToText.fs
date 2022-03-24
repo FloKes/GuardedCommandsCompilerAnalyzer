@@ -18,7 +18,7 @@ let rec getTextAri e =
 let rec getTextBool e =
     match e with
       | Bool(x) -> string x
-      | NotExpr(x) -> getTextBool(x) + ")"
+      | NotExpr(x) -> "!(" + getTextBool(x) + ")"
       | LOrExpr(x,y) -> getTextBool(x) + " || " + getTextBool(y)
       | LAndExpr(x,y) -> getTextBool(x) + " && " + getTextBool(y)
       | OrExpr(x,y) -> getTextBool(x) + " | " + getTextBool(y)

@@ -1,5 +1,4 @@
-if false -> skip
-[] false -> x:=x * 7
-[] true -> skip; x:= 5
-[] true -> skip
-fi
+y:=1;
+do x>0 -> y:=x*y;
+          x:=x-1
+od

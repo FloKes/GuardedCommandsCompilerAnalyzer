@@ -21,7 +21,7 @@ open ProgramGraphGenerator
 type Mem = (string * int) list * (string * int list) list
 
 let initializeMemory mem = 
-    Mem([("x", 1);("y", 4)], [])
+    Mem([("x", 5);("y", 4)], [])
 
 let filterEdgesByStart (pg:list<Edge>, node:int) = 
     pg |> List.filter (fun (s,_,_) -> s = node)
@@ -59,12 +59,12 @@ let rec evaluateBoolean bexp mem=
       | LAndExpr(x,y) -> (evaluateBoolean x mem) && (evaluateBoolean y mem)
     //   | OrExpr(x,y) -> (evaluateBoolean x mem) | (evaluateBoolean y mem)
     //   | AndExpr(x,y) -> (evaluateBoolean x mem) & (evaluateBoolean y mem)
-    //   | EqExpr(x,y) -> getTextAri(x) + " = " + getTextAri(y)
-    //   | NeqExpr(x,y) -> getTextAri(x) + " != " + getTextAri(y)
-    //   | LtExpr(x,y) -> getTextAri(x) + " < " + getTextAri(y)
-    //   | LeqExpr(x,y) -> getTextAri(x) + " <=" + getTextAri(y)
-    //   | GtExpr(x,y) -> getTextAri(x) + " > " + getTextAri(y)
-    //   | GeqExpr(x,y) -> getTextAri(x) + " >= " + getTextAri(y)
+      | EqExpr(x,y) -> getAexprValue(x, mem) = getAexprValue(y, mem) 
+      | NeqExpr(x,y) -> getAexprValue(x, mem) <> getAexprValue(y, mem) 
+      | LtExpr(x,y) -> getAexprValue(x, mem) < getAexprValue(y, mem) 
+      | LeqExpr(x,y) -> getAexprValue(x, mem) <= getAexprValue(y, mem) 
+      | GtExpr(x,y) -> getAexprValue(x, mem) > getAexprValue(y, mem) 
+      | GeqExpr(x,y) -> getAexprValue(x, mem) >= getAexprValue(y, mem) 
 
 // Change cos if we have performCalc its always on Assignment
 let performCalc action mem =
@@ -97,7 +97,6 @@ let evaluateListOfBooleans edgeList mem =
     edgeList |> List.iter (fun (_, act, _) -> match act with | Boolean(bexp) -> if (evaluateBoolean bexp mem) then counter <- counter + 1)
     counter
 
-
 (*
 Pattern match on type of act (act should maybe be changed to sth else)
 If assign or skip, run apply action to memory, and call visit to edges on the next node
@@ -126,6 +125,7 @@ let rec visitEdges (edges:list<Edge>, pg:list<Edge>, mem:Mem) =
                                                         failwith "Program stuck"
                                                         printfn "Program stuck"
                                                     else if headEval && tailEval > 0 then
+                                                        // should make this choice random
                                                         printfn "Non deterministic choice made"
                                                         printEdgeDecomposed s act e
                                                         printMemAtTime "Before" mem
@@ -171,8 +171,6 @@ let compileFromFile n =
 
     // let lastNode = (getDepth e) + 1
     // printfn "Last node will be: %d" lastNode
-    // getDepth e |> ignore
-    //let a = stepExecute nodes vars
     printfn ""
 
 compileFromFile 0

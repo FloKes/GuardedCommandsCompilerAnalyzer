@@ -8,6 +8,10 @@ let decFreshNodeIndex() =
     freshNodeIndex <- freshNodeIndex - 1
     printfn "Node decremented to %d" freshNodeIndex
 
+let negateBooleanExp bexp=
+    NotExpr(bexp)
+
+
 let rec getEdgeString edge=
     match edge with
         | (orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
@@ -57,7 +61,8 @@ let rec generateCommandEdges (e, startNode, endNode, programGraph) =
 
     | IfFi(gc) ->   generateGCEdges (gc, startNode, endNode, programGraph)
                     
-    | DoOd(gc) -> let doneGc = [Edge(startNode, SkipAction, endNode)]
+    | DoOd(gc) -> let negBoolAct = Boolean(match gc with | GuardedCommand(b,_) -> negateBooleanExp b)
+                  let doneGc = [Edge(startNode, negBoolAct, endNode)]
                   let edges = generateGCEdges (gc, startNode, startNode, programGraph)
                   edges @ doneGc
 
