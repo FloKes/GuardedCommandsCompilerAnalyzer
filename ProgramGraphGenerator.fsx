@@ -12,10 +12,12 @@ open Lexer
 open DotWriter
 #load "ActionToText.fs"
 open ActionToText
+#load "DepthFinder.fs"
+open DepthFinder
 
 // module ProgramGraphGenerator
 
-let mutable nodeIndex = 0
+let mutable freshNodeIndex = 1
 let mutable continuationNode = 0
 let mutable currentNode = 0
 let mutable edgeSteps = 0
@@ -25,10 +27,10 @@ let mutable lastBranchJoin = -1
 let mutable branchStartNode = -1
 //let programGraph = []
 
-let incNodeIndex() = nodeIndex <- nodeIndex + 1
-let decNodeIndex() = 
-    nodeIndex <- nodeIndex - 1
-    printfn "Node decremented to %d" nodeIndex
+let incFreshNodeIndex() = freshNodeIndex <- freshNodeIndex + 1
+let decFreshNodeIndex() = 
+    freshNodeIndex <- freshNodeIndex - 1
+    printfn "Node decremented to %d" freshNodeIndex
 
 
 let getLastElement list =
@@ -72,21 +74,6 @@ let updateEdge edge newEnd =
     match edge with
         | Edge(s, act, e) -> Edge(s, act, newEnd)
 
-let changeLastNodes (list, lastNode, joinNode) =
-    if edgeSteps = 1 then
-        printfn "Changing last Nodes \nbefore:"
-        printEdgeTuples list
-        Console.ReadLine() |> ignore
-    decNodeIndex()
-    let l = list |> List.mapi (fun i v -> match v with 
-                                        | Edge(s, act, e) -> if e = lastNode then updateEdge v joinNode
-                                                                             else v)
-    if edgeSteps = 1 then
-        printf "After \n"
-        printEdgeTuples l
-        Console.ReadLine() |> ignore                                                                             
-        printfn "Done"
-    l
 
 
 let performCalc action vars =
@@ -97,54 +84,55 @@ let performCalc action vars =
                                     
         | SkipAction -> vars
 
-let rec generateCommandEdges (e, startNode, endNode, programGraph, startBranch, endBranch) =
+
+let getFresh n =
+    freshNodeIndex + n
+
+let updateNodeIndex pg =
+    let mutable max = freshNodeIndex
+    pg |> List.iter(fun (Edge(s, _, e)) -> if s > max then max <- s
+                                           if e > max then max <- e)
+    freshNodeIndex <- max + 1
+
+let rec generateCommandEdges (e, startNode, endNode, programGraph) =
   match e with
-    | Assign(x,y) -> incNodeIndex()
-                     continuationNode <- endNode
-                     joinLists programGraph [Edge(startNode, Assignment(x, y), endNode)]
-    | Skip  ->  incNodeIndex()
-                continuationNode <- endNode
-                joinLists programGraph [Edge(startNode, SkipAction, endNode)]
+    | Assign(x,y) ->let pg = joinLists programGraph [Edge(startNode, Assignment(x, y), endNode)]
+                    updateNodeIndex pg
+                    pg
 
-    | CommandSeq(x,y) -> let a = generateCommandEdges(x, continuationNode, nodeIndex + 1, programGraph, startBranch, endBranch)
-                         generateCommandEdges(y, continuationNode, nodeIndex + 1, a, startBranch, endBranch)
+    | Skip  ->  let pg = joinLists programGraph [Edge(startNode, SkipAction, endNode)]
+                updateNodeIndex pg
+                pg
 
-    | IfFi(x) -> let startBranch = startNode
-                 branchStartNode <- startBranch
-                 // make generate GCEdges return where stuff needs to be merged, and then do it
-                 let a = generateGCEdges (x, startNode, endNode, programGraph, startBranch, -1)
-                 a
+    | CommandSeq(x,y) -> let depthx = getDepth x
+                         let fresh = getFresh depthx
+                         let a = generateCommandEdges(x, startNode, fresh, programGraph)
+                         
+                         generateCommandEdges(y, fresh, endNode, a)
 
-and generateGCEdges (e, startNode, endNode, programGraph, startBranch, endBranch) = 
+    | IfFi(gc) ->   generateGCEdges (gc, startNode, endNode, programGraph)
+                    
+    | DoOd(gc) -> let doneGc = [Edge(startNode, SkipAction, endNode)]
+                  let edges = generateGCEdges (gc, startNode, startNode, programGraph)
+                  edges @ doneGc
+
+and generateGCEdges (e, startNode, endNode, programGraph) = 
     match e with
-        | GuardedCommand(b, exp) -> incNodeIndex()
-                                    continuationNode <- endNode
-                                    let a = joinLists programGraph [Edge(startNode, Boolean(b), endNode)]
-                                    let b = generateCommandEdges(exp, continuationNode, nodeIndex + 1, a, startBranch, endBranch)
-                                    let (Edge(_,_,lastBranchFinish)) = getLastElement b
-                                    if endBranch = -1  
-                                    then b
-                                    else 
-                                        let b = changeLastNodes (b, lastBranchFinish, endBranch)
-                                        continuationNode <- endBranch
-                                        b
-                                    // b
+        | GuardedCommand(b, exp) -> let fresh = getFresh 0
+                                    let a = joinLists programGraph [Edge(startNode, Boolean(b), fresh)]
+                                    updateNodeIndex a 
+                                    let b = generateCommandEdges(exp, fresh, endNode, a)
+                                    updateNodeIndex b
+                                    b
                                     
-        | GuardedCommandSeq(fst, snd) -> let a = generateGCEdges(fst, branchStartNode, endNode, programGraph, startBranch, endBranch)
-                                         let endBranch = nodeIndex
-                                         generateGCBranchEdges(snd, branchStartNode, nodeIndex + 1, a, startBranch, endBranch)
+        | GuardedCommandSeq(gc1, gc2) -> let edgesGC1 = generateGCEdges(gc1, startNode, endNode, programGraph)                                        
+                                         generateGCEdges(gc2, startNode, endNode, edgesGC1)
                                          
 
-
-and generateGCBranchEdges (e, startNode, endNode, programGraph, startBranch, endBranch) =
-        match e with
-        | GuardedCommand(x) ->  generateGCEdges (e, startNode, endNode, programGraph, startBranch, endBranch)                          
-        | GuardedCommandSeq(fst, snd) -> let a = generateGCEdges(fst, branchStartNode, endNode, programGraph, startBranch, endBranch)
-                                         generateGCBranchEdges(snd, branchStartNode, nodeIndex + 1, a, startBranch, endBranch)
-
-
 let getProgramGraph e =
-    let graph = generateCommandEdges (e, 0 , 1, [], -1, -1)
+    let lastNode = getDepth e
+    printfn "Last node will be: %d" lastNode
+    let graph = generateCommandEdges (e, 0 , lastNode, [])
     graph 
 
 
@@ -152,6 +140,7 @@ let parse input =
     let lexbuf = LexBuffer<char>.FromString input
     let res = Parser.start Lexer.tokenize lexbuf
     res
+        
 
 let compileFromFile n =
     let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\GCLExamples\simple.txt"))
@@ -160,7 +149,7 @@ let compileFromFile n =
     let g = getProgramGraph e
     printProgramGraph g
     DotWriter.writeProgramGraph g
-
+    // getDepth e |> ignore
     //let a = stepExecute nodes vars
     printfn ""
 
