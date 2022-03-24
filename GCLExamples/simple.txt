@@ -1,11 +1,3 @@
-if x>5 -> if x>5 -> skip
-             [] x <= 5 -> x:=5; skip fi;
-             x:= 123
-   [] x<5 -> if x>5 -> skip
-             [] x <= 5 -> x:=5; skip fi;
-             x:= 123
-   [] x=5 -> if x>5 -> skip
-             [] x <= 5 -> x:=5; skip fi;
-             x:= 123
-fi;
+x:=10;
+y:= y + x;
 skip
