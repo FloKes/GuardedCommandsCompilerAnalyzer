@@ -26,6 +26,11 @@ if x<5 -> x:= 1
 fi
 
 if x<5 -> x:= 1 
+[] x>5 -> skip
+fi;
+skip
+
+if x<5 -> x:= 1 
 [] y<1 -> if x = 0 -> skip [] x < 0 -> skip fi
 fi;
 skip

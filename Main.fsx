@@ -23,10 +23,11 @@ type Mem = (string * int) list * (string * int list) list
 let initializeMemory mem = 
     Mem([("x", 1);("y", 4)], [])
 
-let printVars vars = 
+let getMemString (mem:Mem) = // Only works for variables so far
+    let (vars, arrs) = mem
     let mutable s = ""
-    List.iteri(fun i (id, value) -> s <- s + id + "=" + string value + ", ") vars
-   // printfn "Node %d: %s" currentNode s
+    vars |> List.iter(fun (id, value) -> s <- s + id + "=" + string value + ", ")
+    s
 
 let rec getAexprValue e vars =
   match e with
@@ -43,24 +44,35 @@ let rec getAexprValue e vars =
     | UPlusExpr(x) -> getAexprValue x vars 
     | UMinusExpr(x) -> - getAexprValue x vars 
 
-let performCalc action vars =
+let performCalc action mem =
     match action with
         | Assignment(var, expr) ->  let varText = getTextAri var
-                                    let result = getAexprValue expr vars 
-                                    vars |> List.mapi (fun i (id, value) -> if varText = id then (varText, result) else (id, value))
+                                    let result = getAexprValue expr mem 
+                                    mem |> List.mapi (fun i (id, value) -> if varText = id then (varText, result) else (id, value))
                                     
-        | SkipAction -> vars
+        | SkipAction -> mem
+
+
+
+
+
+let stepWiseExecute (pg:list<Edge>, mem:Mem)=
+    let startEdges = pg |> List.filter (fun (s,_,_) -> s = 0)
+    printProgramGraph startEdges
+
 
 let compileFromFile n =
     let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\GCLExamples\simple.txt"))
     printf "Do you want to see edge steps (0:no, 1:yes): "
     edgeSteps <- int (Console.ReadLine())
-    let g = getProgramGraph e
-    printProgramGraph g
-    DotWriter.writeProgramGraph g
+    let pg = getProgramGraph e
+    printProgramGraph pg
+    DotWriter.writeProgramGraph pg
 
     let mem = initializeMemory 0
+    printfn "%s" (getMemString mem)
 
+    stepWiseExecute (pg, mem)
 
     // let lastNode = (getDepth e) + 1
     // printfn "Last node will be: %d" lastNode

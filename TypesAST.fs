@@ -48,14 +48,12 @@ type action=
     | Boolean of bexpr
 
 
+type Edge= int * action * int
 
-type edgeTypes=
-    | Edge of (int * action * int)
-
-and nodeTypes=
-  | Node of (int * edgeTypes)
-  | StartNode
-  | EndNode
+// and nodeTypes=
+//   | Node of (int * edgeTypes)
+//   | StartNode
+//   | EndNode
 
 
 // type edgeTypes=

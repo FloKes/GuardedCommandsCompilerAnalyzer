@@ -24,12 +24,13 @@ and getDepthCommand e d =
     | DoOd(x) -> getDepthGuardedCommand x d
     | CommandSeq(x,y) -> getNumNodes x d + getDepthCommand y d
 
+
+// For each branch beside the main one we encounter in an if statement, depth after that if statement should be smaller by that number
+
 and getDepthGuardedCommand e d=
     match e with
         | GuardedCommand(x, y) -> getDepthBool x d + getDepthCommand y d
         | GuardedCommandSeq(x,y) -> getDepthGuardedCommand x d
-
-
 
 let getDepth command =
     let r = (getDepthCommand command 0) - 1

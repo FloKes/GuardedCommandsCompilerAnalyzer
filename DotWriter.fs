@@ -19,10 +19,8 @@ let labelText act=
 let finish f=
     System.IO.File.AppendAllText( path, "\n}")
 
-let writeLines (edges: list<edgeTypes>) =
-    List.iteri (fun i x -> 
-                match x with
-                    | Edge(s, act, e) -> writeLine (nodeText(s) + " -> " + nodeText(e) + labelText(act))  ) edges
+let writeLines (edges: list<Edge>) =
+    List.iter (fun (s, act, e) -> writeLine (nodeText(s) + " -> " + nodeText(e) + labelText(act))  ) edges
 
 let writeProgramGraph e =
     init 0

@@ -10,11 +10,11 @@ let decFreshNodeIndex() =
 
 let rec getEdgeString edge=
     match edge with
-        | Edge(orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
+        | (orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
 
 let getEdgeTuple edge=
     match edge with
-        | Edge(orig, action, dest) -> "(" + string orig + ", " + (printAction action) + ", " + string dest + ")"
+        | (orig, action, dest) -> "(" + string orig + ", " + (printAction action) + ", " + string dest + ")"
 
 let printProgramGraph graph =
     List.iteri (fun i e -> printfn "%s" (getEdgeString e)) graph
@@ -26,9 +26,9 @@ let printEdgeTuples list =
     printfn ""
 
 let updateNodeIndex pg =
-    let mutable max = freshNodeIndex
-    pg |> List.iter(fun (Edge(s, _, e)) -> if s > max then max <- s
-                                           if e > max then max <- e)
+    let mutable max = freshNodeIndex - 1
+    pg |> List.iter(fun (s, _, e) -> if s > max then max <- s
+                                     if e > max then max <- e)
     freshNodeIndex <- max + 1
 
 let joinLists list1 list2 = 
