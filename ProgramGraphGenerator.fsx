@@ -63,11 +63,18 @@ let printEdgeTuples list =
     printf "]"
     printfn ""
 
+let updateNodeIndex pg =
+    let mutable max = freshNodeIndex
+    pg |> List.iter(fun (Edge(s, _, e)) -> if s > max then max <- s
+                                           if e > max then max <- e)
+    freshNodeIndex <- max + 1
+
 let joinLists list1 list2 = 
     let a = list1 @ list2
     if edgeSteps = 1 then
         Console.ReadLine() |> ignore
         printEdgeTuples a
+    updateNodeIndex a
     a
 
 let updateEdge edge newEnd =
@@ -86,28 +93,19 @@ let performCalc action vars =
 
 
 let getFresh n =
+    printfn "get fresh: %d" (freshNodeIndex + n)
     freshNodeIndex + n
-
-let updateNodeIndex pg =
-    let mutable max = freshNodeIndex
-    pg |> List.iter(fun (Edge(s, _, e)) -> if s > max then max <- s
-                                           if e > max then max <- e)
-    freshNodeIndex <- max + 1
 
 let rec generateCommandEdges (e, startNode, endNode, programGraph) =
   match e with
-    | Assign(x,y) ->let pg = joinLists programGraph [Edge(startNode, Assignment(x, y), endNode)]
-                    updateNodeIndex pg
-                    pg
-
-    | Skip  ->  let pg = joinLists programGraph [Edge(startNode, SkipAction, endNode)]
-                updateNodeIndex pg
-                pg
+    | Assign(x,y) -> joinLists programGraph [Edge(startNode, Assignment(x, y), endNode)]
+                
+    | Skip  -> joinLists programGraph [Edge(startNode, SkipAction, endNode)]
 
     | CommandSeq(x,y) -> let depthx = getDepth x
                          let fresh = getFresh depthx
                          let a = generateCommandEdges(x, startNode, fresh, programGraph)
-                         
+                        
                          generateCommandEdges(y, fresh, endNode, a)
 
     | IfFi(gc) ->   generateGCEdges (gc, startNode, endNode, programGraph)
@@ -120,9 +118,7 @@ and generateGCEdges (e, startNode, endNode, programGraph) =
     match e with
         | GuardedCommand(b, exp) -> let fresh = getFresh 0
                                     let a = joinLists programGraph [Edge(startNode, Boolean(b), fresh)]
-                                    updateNodeIndex a 
                                     let b = generateCommandEdges(exp, fresh, endNode, a)
-                                    updateNodeIndex b
                                     b
                                     
         | GuardedCommandSeq(gc1, gc2) -> let edgesGC1 = generateGCEdges(gc1, startNode, endNode, programGraph)                                        
@@ -130,7 +126,7 @@ and generateGCEdges (e, startNode, endNode, programGraph) =
                                          
 
 let getProgramGraph e =
-    let lastNode = getDepth e
+    let lastNode = (getDepth e) + 1
     printfn "Last node will be: %d" lastNode
     let graph = generateCommandEdges (e, 0 , lastNode, [])
     graph 
