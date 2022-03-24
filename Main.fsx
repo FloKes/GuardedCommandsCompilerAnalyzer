@@ -21,7 +21,13 @@ open ProgramGraphGenerator
 type Mem = (string * int) list * (string * int list) list
 
 let initializeMemory mem = 
-    Mem([("x", 5);("y", 4)], [])
+    Mem([("x", 5);("y", 1);("z", 0)], [])
+
+let checkIfVariableExists id mem =
+    let mutable exists = false
+    let (vars, arrs) = mem
+    vars |> List.iter(fun (var,_) -> if var = id then exists <- true)
+    exists
 
 let filterEdgesByStart (pg:list<Edge>, node:int) = 
     pg |> List.filter (fun (s,_,_) -> s = node)
@@ -70,6 +76,11 @@ let rec evaluateBoolean bexp mem=
 let performCalc action mem =
     match action with
         | Assignment(var, expr) ->  let varText = getTextAri var
+                                    if not (checkIfVariableExists varText mem) then
+                                        failwith ("Update of unkown variable " + varText + " at " + varText + ":=" + getTextAri expr)
+
+                                    //TODO : add a function which checks all the variables used in an expression
+                                    // and return something ala "Lookup of unknown variable z at x:=z."
                                     let result = getAexprValue (expr, mem) 
                                     let (vars, ari) = mem
                                     let newVars = vars |> List.mapi (fun i (id, value) -> if id = varText then (id, result) else (id, value))
