@@ -1,5 +1,20 @@
 module ProgramGraphGenerator
 
+// open FSharp.Text.Lexing
+// open System
+// #load "TypesAST.fs"
+// open TypesAST
+// #load "Parser.fs"
+// open Parser
+// #load "Lexer.fs"
+// open Lexer
+// #load "ActionToText.fs"
+// open ActionToText
+// #load "DotWriter.fs"
+// open DotWriter
+// #load "DepthFinder.fs"
+// open DepthFinder
+
 let mutable freshNodeIndex = 1
 let mutable edgeSteps = 0
 
@@ -11,7 +26,7 @@ let decFreshNodeIndex() =
 let negateBooleanExp bexp=
     NotExpr(bexp)
 
-
+ 
 let rec getEdgeString edge=
     match edge with
         | (orig, action, dest) -> "(" + string orig + ")" + (printAction action) + "(" + string dest + ")"
@@ -20,7 +35,8 @@ let getEdgeTuple edge=
     match edge with
         | (orig, action, dest) -> "(" + string orig + ", " + (printAction action) + ", " + string dest + ")"
 
-let printProgramGraph graph =
+let printProgramGraph graph=
+    let (graph, _) = graph
     List.iteri (fun i e -> printfn "%s" (getEdgeString e)) graph
 
 let printEdgeTuples list = 
@@ -49,32 +65,32 @@ let getFresh n =
 
 let rec generateCommandEdges (e, startNode, endNode, programGraph) =
   match e with
-    | Assign(x,y) -> joinLists programGraph [Edge(startNode, Assignment(x, y), endNode)]
+    | Assign(x,y) -> joinLists programGraph [Edge(startNode, Assignment(x, y), endNode)], Set.empty
                 
-    | Skip  -> joinLists programGraph [Edge(startNode, SkipAction, endNode)]
+    | Skip  -> joinLists programGraph [Edge(startNode, SkipAction, endNode)], Set.empty
 
     | CommandSeq(x,y) -> let depthx = getDepth x
                          let fresh = getFresh depthx
-                         let a = generateCommandEdges(x, startNode, fresh, programGraph)
-                        
-                         generateCommandEdges(y, fresh, endNode, a)
+                         let a, a1 = generateCommandEdges(x, startNode, fresh, programGraph)
+                         let b, b1 = generateCommandEdges(y, fresh, endNode, a)
+                         b, Set.union a1 b1
 
     | IfFi(gc) ->   generateGCEdges (gc, startNode, endNode, programGraph)
                     
     | DoOd(gc) -> let negBoolAct = Boolean(match gc with | GuardedCommand(b,_) -> negateBooleanExp b)
                   let doneGc = [Edge(startNode, negBoolAct, endNode)]
-                  let edges = generateGCEdges (gc, startNode, startNode, programGraph)
-                  edges @ doneGc
+                  let edges, set = generateGCEdges (gc, startNode, startNode, programGraph)
+                  edges @ doneGc, Set.union set (Set.empty.Add(startNode))
 
 and generateGCEdges (e, startNode, endNode, programGraph) = 
     match e with
         | GuardedCommand(b, exp) -> let fresh = getFresh 0
                                     let a = joinLists programGraph [Edge(startNode, Boolean(b), fresh)]
-                                    let b = generateCommandEdges(exp, fresh, endNode, a)
-                                    b
+                                    generateCommandEdges(exp, fresh, endNode, a)
                                     
-        | GuardedCommandSeq(gc1, gc2) -> let edgesGC1 = generateGCEdges(gc1, startNode, endNode, programGraph)                                        
-                                         generateGCEdges(gc2, startNode, endNode, edgesGC1)
+        | GuardedCommandSeq(gc1, gc2) -> let edgesGC1, set1 = generateGCEdges(gc1, startNode, endNode, programGraph)                                        
+                                         let edges2, set2 = generateGCEdges(gc2, startNode, endNode, edgesGC1)
+                                         edges2, Set.union set1 set2
                                          
 
 let getProgramGraph e =

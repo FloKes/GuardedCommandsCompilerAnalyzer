@@ -24,6 +24,7 @@ let writeLines (edges: list<Edge>) =
 
 let writeProgramGraph e =
     init 0
+    let (e, _) = e 
     writeLines(e)
     finish 0
 

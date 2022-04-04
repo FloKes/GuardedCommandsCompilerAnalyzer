@@ -19,6 +19,28 @@ open ProgramGraphGenerator
 #load "StepExecutor.fs"
 open StepExecutor
 
+
+let rec get_predicate_assingnments nodes =
+    match nodes with 
+    | [] -> []
+    | node :: tail -> printfn "Enter predicate for the node: %d" node
+                      let choice = Console.ReadLine()
+                      [(node, choice)] @ get_predicate_assingnments tail
+
+
+let rec egdes_ending_with pg q =
+    match pg with
+    |[] -> []
+    |(s, act, e) :: tail  when e = q -> [Edge(s, act, e)] @ egdes_ending_with tail q
+    |head :: tail ->  egdes_ending_with tail q
+
+
+let rec nodesinP pa =
+    match pa with
+    |[] -> []
+    |(node, choice)::tail -> [node] @ nodesinP tail
+
+
 let compileFromFile n =
     let e = parse(System.IO.File.ReadAllText (__SOURCE_DIRECTORY__ + "\GCLExamples\simple.txt"))
     // printf "Do you want to see edge steps (0:no, 1:yes): "
