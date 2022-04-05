@@ -105,6 +105,21 @@ let signAdd sign1 sign2 =
                     | Nsign -> Set.empty.Add(Nsign).Add(Zsign).Add(Psign)  
                     | Zsign -> Set.empty.Add(Psign)
                     | Psign -> Set.empty.Add(Psign)    
+
+let signSub sign1 sign2 = 
+    match sign1 with 
+        | Nsign -> match sign2 with
+                    | Nsign -> Set.empty.Add(Nsign).Add(Zsign).Add(Psign)
+                    | Zsign -> Set.empty.Add(Nsign)
+                    | Psign -> Set.empty.Add(Nsign)
+        | Zsign -> match sign2 with 
+                    | Nsign -> Set.empty.Add(Psign)
+                    | Zsign -> Set.empty.Add(Zsign)
+                    | Psign -> Set.empty.Add(Nsign)
+        | Psign -> match sign2 with
+                    | Nsign -> Set.empty.Add(Psign)
+                    | Zsign -> Set.empty.Add(Psign)
+                    | Psign -> Set.empty.Add(Nsign).Add(Zsign).Add(Psign)
                                 
 let signGte sign1 sign2 = 
     match sign1 with 
@@ -129,6 +144,7 @@ let rec ASign (ae: aexpr) (mem: SignMem) =
         | Identifier(x) -> getSignOfIdenVar x mem
         | IdentifierArray(x, y) -> Set.empty
         | PlusExpr(x, y) -> signOpSet (ASign x mem) (ASign y mem) signAdd
+        | MinusExpr(x, y) -> signOpSet (ASign x mem) (ASign y mem) signSub
 
 let rec BSign (be: bexpr) (mem: SignMem) = 
     match be with   
@@ -198,8 +214,12 @@ let rec solve (pg: list<int * action * int>) (mem: SignMem) =
                                                 // printSignMemSet res
                                                 // Console.ReadLine()
                                                 let mutable a1 = getAnaAssing anaAs e
+                                                // printSignMemSet a1
+                                                // Console.ReadLine()
                                                 if not (res.IsSubsetOf a1) then
                                                     a1 <- Set.union a1 res
+                                                    // printSignMemSet a1
+                                                    // Console.ReadLine()
                                                     anaAs <- setAnaAssign anaAs e a1
                                                     worklist <- worklist.Add(e))
     printAnaAssign anaAs
