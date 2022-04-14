@@ -31,7 +31,7 @@ type SecLattice = SecLevel*SecLevel
 type SecClass = (string * SecLevel) list
 
 let printFlow flow =
-    flow |> Set.iter (fun (x,y) -> printf "%s -> %s, " x y)
+    flow |> Set.iter (fun (x,y) -> printf "%s → %s, " x y)
     printfn""
 
 let makeFlow (identSet1: string Set) (identSet2: string Set) =
